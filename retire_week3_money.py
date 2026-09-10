@@ -1,4 +1,5 @@
 import itertools
+import hashlib
 import pandas as pd
 import streamlit as st
 from supabase import create_client, Client
@@ -133,6 +134,106 @@ def final_wealth(start, returns):
 
 def score_from_error(error_pct):
     return max(0.0, 100.0 - error_pct)
+
+
+RETURN_SCENARIOS = [
+    {
+        "name": "A",
+        "target_avg": 10,
+        "min_r": -80,
+        "max_r": 80,
+        "step": 5,
+        "fixed": {1: 20},
+        "rule": "2년차 수익률은 +20%로 고정",
+    },
+    {
+        "name": "B",
+        "target_avg": 5,
+        "min_r": -60,
+        "max_r": 60,
+        "step": 5,
+        "negative_count": 1,
+        "rule": "세 해 중 손실인 해는 정확히 1번",
+    },
+    {
+        "name": "C",
+        "target_avg": 15,
+        "min_r": -50,
+        "max_r": 70,
+        "step": 5,
+        "fixed": {0: -20},
+        "rule": "1년차 수익률은 -20%로 고정",
+    },
+    {
+        "name": "D",
+        "target_avg": 0,
+        "min_r": -50,
+        "max_r": 50,
+        "step": 5,
+        "zero_count": 1,
+        "rule": "세 해 중 수익률 0%인 해는 정확히 1번",
+    },
+    {
+        "name": "E",
+        "target_avg": 10,
+        "min_r": -40,
+        "max_r": 60,
+        "step": 5,
+        "fixed": {2: 0},
+        "rule": "3년차 수익률은 0%로 고정",
+    },
+    {
+        "name": "F",
+        "target_avg": 5,
+        "min_r": -70,
+        "max_r": 50,
+        "step": 5,
+        "fixed": {0: 40},
+        "rule": "1년차 수익률은 +40%로 고정",
+    },
+]
+
+
+def get_student_scenario(class_name: str, name: str):
+    token = f"{class_name}|{name}".encode("utf-8")
+    idx = int(hashlib.sha256(token).hexdigest()[:8], 16) % len(RETURN_SCENARIOS)
+    return RETURN_SCENARIOS[idx]
+
+
+def scenario_valid(values, scenario):
+    if abs(sum(values) / 3 - scenario["target_avg"]) > 1e-9:
+        return False
+
+    fixed = scenario.get("fixed", {})
+    for idx, target in fixed.items():
+        if values[idx] != target:
+            return False
+
+    if "negative_count" in scenario:
+        if sum(v < 0 for v in values) != scenario["negative_count"]:
+            return False
+
+    if "zero_count" in scenario:
+        if sum(v == 0 for v in values) != scenario["zero_count"]:
+            return False
+
+    return True
+
+
+def scenario_optimum(scenario):
+    values = list(range(scenario["min_r"], scenario["max_r"] + 1, scenario["step"]))
+    best_value = None
+    best_combo = None
+
+    for combo in itertools.product(values, repeat=3):
+        if not scenario_valid(combo, scenario):
+            continue
+        wealth = final_wealth(100, [v / 100 for v in combo])
+        if best_value is None or wealth < best_value - 1e-12:
+            best_value = wealth
+            best_combo = combo
+
+    return best_value, best_combo
 
 
 def render_header(class_name, role):
@@ -298,7 +399,7 @@ if role == "student":
             p = old_pv["payload"]
             st.success(
                 f"내 추정 {p['guess']:,.0f}만원 · 정답 {p['exact_pv']:,.2f}만원 · "
-                f"오차율 {p['error_pct']:.2f}% · 점수 {p['score']:.1f}"
+                f"오차 {p['error_abs']:,.2f}만원 · 오차율 {p['error_pct']:.2f}%"
             )
             if p["error_pct"] <= 1:
                 st.balloons()
@@ -309,15 +410,15 @@ if role == "student":
 
             if st.button("🔒 이 금액으로 미션 B 제출", type="primary"):
                 error_pct2 = abs(guess - exact_pv) / exact_pv * 100
-                score2 = score_from_error(error_pct2)
+                error_abs2 = abs(guess - exact_pv)
                 save_response(my_class, me, "pv_sniper", {
                     "future_target": future_target,
                     "rate_pct": rate_pct2,
                     "years": years2,
                     "guess": guess,
                     "exact_pv": round(exact_pv, 4),
+                    "error_abs": round(error_abs2, 4),
                     "error_pct": round(error_pct2, 4),
-                    "score": round(score2, 4),
                 })
                 st.rerun()
 
@@ -325,79 +426,85 @@ if role == "student":
     # 현금흐름 게임
     # ------------------------------------------------------
     elif phase == "현금흐름 게임":
-        st.subheader("2. 현금흐름 게임")
-        st.caption("정답은 제출하기 전에는 공개되지 않습니다.")
+        st.subheader("2. 현금흐름 대결 · 3라운드")
+        st.caption("각 라운드에서 연 5% 할인 기준 현재가치가 더 큰 현금흐름을 고르세요. 제출 전에는 정답이 공개되지 않습니다.")
 
-        old = my_response(my_class, me, "cashflow_game")
-        payment = 100.0
-        months = 36
-        nominal = 0.06
-        ordinary = annuity_pv(payment, nominal, months, due=False)
-        due = annuity_pv(payment, nominal, months, due=True)
+        rounds = [
+            {
+                "title": "라운드 1",
+                "A_text": "A: 1년 후 300만원 + 3년 후 200만원",
+                "A_cf": [(1, 300), (3, 200)],
+                "B_text": "B: 1년 후 100만원 + 2년 후 150만원 + 3년 후 250만원",
+                "B_cf": [(1, 100), (2, 150), (3, 250)],
+            },
+            {
+                "title": "라운드 2",
+                "A_text": "A: 2년 후 500만원",
+                "A_cf": [(2, 500)],
+                "B_text": "B: 1년 후 200만원 + 3년 후 300만원",
+                "B_cf": [(1, 200), (3, 300)],
+            },
+            {
+                "title": "라운드 3",
+                "A_text": "A: 1년 후 150만원 + 2년 후 150만원 + 3년 후 200만원",
+                "A_cf": [(1, 150), (2, 150), (3, 200)],
+                "B_text": "B: 1년 후 250만원 + 2년 후 100만원 + 3년 후 150만원",
+                "B_cf": [(1, 250), (2, 100), (3, 150)],
+            },
+        ]
 
-        amounts = [100, 150, 200]
         rate = 0.05
-        optimal_schedule = [(1, 200), (2, 150), (3, 100)]
-        optimal_pv = cashflow_pv(optimal_schedule, rate)
+        old = my_response(my_class, me, "cashflow_game")
 
         if old:
             p = old["payload"]
-            st.success(f"제출 완료 · 총점 {p['score']} / 2")
-            st.markdown("#### 미션 A 결과")
-            st.write(f"내 선택: **{p['annuity_guess']}**")
-            st.write(f"매월 말 지급 PV: **{p['ordinary_pv']:,.2f}만원**")
-            st.write(f"매월 초 지급 PV: **{p['due_pv']:,.2f}만원**")
-            st.info("같은 금액·횟수라면 양의 할인율에서 한 기간씩 더 일찍 받는 선불 지급의 현재가치가 더 큽니다.")
-
-            st.markdown("#### 미션 B 결과")
-            st.write(
-                f"내 배치: 1년 후 {p['year1']}만원 · 2년 후 {p['year2']}만원 · 3년 후 {p['year3']}만원"
-            )
-            st.metric("내 현금흐름의 현재가치", f"{p['my_pv']:,.2f}만원")
-            st.write("최대 PV 배치: **1년 후 200만원 · 2년 후 150만원 · 3년 후 100만원**")
-            st.metric("가능한 최대 현재가치", f"{p['optimal_pv']:,.2f}만원")
+            st.success(f"제출 완료 · {p['score']} / 3 정답")
+            for i, rd in enumerate(rounds, start=1):
+                pv_a = cashflow_pv(rd["A_cf"], rate)
+                pv_b = cashflow_pv(rd["B_cf"], rate)
+                correct = "A" if pv_a > pv_b else "B"
+                mine = p[f"round{i}"]
+                st.markdown(f"#### {rd['title']}")
+                st.write(rd["A_text"])
+                st.write(rd["B_text"])
+                if mine == correct:
+                    st.success(f"내 선택 {mine} · 정답")
+                else:
+                    st.error(f"내 선택 {mine} · 정답 {correct}")
+                st.caption(f"A의 현재가치 {pv_a:,.2f}만원 · B의 현재가치 {pv_b:,.2f}만원")
         else:
-            with st.form("cashflow_form"):
-                st.markdown("### 🎯 미션 A · 선불 vs 후불")
-                annuity_guess = st.radio(
-                    "월 100만원씩 36개월, 명목 연 6%(월복리)라면 현재가치가 더 큰 것은?",
-                    ["매월 말 지급", "매월 초 지급"],
-                    index=None,
-                )
+            with st.form("cashflow_battle_form"):
+                answers = []
+                for i, rd in enumerate(rounds, start=1):
+                    st.markdown(f"### 🎯 {rd['title']}")
+                    st.write(rd["A_text"])
+                    st.write(rd["B_text"])
+                    ans = st.radio(
+                        "현재가치가 더 큰 쪽",
+                        ["A", "B"],
+                        index=None,
+                        horizontal=True,
+                        key=f"cash_round_{i}",
+                    )
+                    answers.append(ans)
+                    st.write("---")
 
-                st.write("---")
-                st.markdown("### 🎯 미션 B · 450만원을 가장 가치 있게 배치하라")
-                st.write(
-                    "총 450만원을 1년 후·2년 후·3년 후에 각각 한 번씩 받습니다. "
-                    "100만원, 150만원, 200만원 카드를 **한 번씩만** 사용하여 연 5% 기준 현재가치를 최대화하세요."
-                )
-
-                c1, c2, c3 = st.columns(3)
-                y1 = c1.selectbox("1년 후", amounts, index=0)
-                y2 = c2.selectbox("2년 후", amounts, index=1)
-                y3 = c3.selectbox("3년 후", amounts, index=2)
-
-                submitted = st.form_submit_button("🔒 두 미션 제출", type="primary")
+                submitted = st.form_submit_button("🔒 3라운드 제출", type="primary")
                 if submitted:
-                    if annuity_guess is None:
-                        st.warning("미션 A의 답을 선택해주세요.")
-                    elif len({y1, y2, y3}) != 3:
-                        st.warning("100만원, 150만원, 200만원 카드를 각각 한 번씩 사용해야 합니다.")
+                    if any(a is None for a in answers):
+                        st.warning("세 라운드 모두 선택해주세요.")
                     else:
-                        my_schedule = [(1, y1), (2, y2), (3, y3)]
-                        my_pv = cashflow_pv(my_schedule, rate)
-                        score_a = 1 if annuity_guess == "매월 초 지급" else 0
-                        score_b = 1 if (y1, y2, y3) == (200, 150, 100) else 0
+                        correct_answers = []
+                        for rd in rounds:
+                            pv_a = cashflow_pv(rd["A_cf"], rate)
+                            pv_b = cashflow_pv(rd["B_cf"], rate)
+                            correct_answers.append("A" if pv_a > pv_b else "B")
+                        score = sum(a == c for a, c in zip(answers, correct_answers))
                         save_response(my_class, me, "cashflow_game", {
-                            "annuity_guess": annuity_guess,
-                            "ordinary_pv": round(ordinary, 4),
-                            "due_pv": round(due, 4),
-                            "year1": y1,
-                            "year2": y2,
-                            "year3": y3,
-                            "my_pv": round(my_pv, 4),
-                            "optimal_pv": round(optimal_pv, 4),
-                            "score": score_a + score_b,
+                            "round1": answers[0],
+                            "round2": answers[1],
+                            "round3": answers[2],
+                            "score": score,
                         })
                         st.rerun()
 
@@ -405,61 +512,84 @@ if role == "student":
     # 수익률 탐정
     # ------------------------------------------------------
     elif phase == "수익률 탐정":
-        st.subheader("3. 수익률 탐정 · 산술평균 10%의 함정")
-        st.write(
-            "세 해의 **산술평균수익률을 정확히 10%로 유지하면서**, "
-            "3년 뒤 자산을 가능한 한 작게 만들어 보세요."
+        st.subheader("3. 수익률 탐정 · 나만의 제약조건")
+        scenario = get_student_scenario(my_class, me)
+        optimum, best_combo = scenario_optimum(scenario)
+
+        st.info(
+            f"내 미션: **3년 산술평균을 {scenario['target_avg']}%로 맞추면서 최종자산을 최소화**하세요. "
+            f"추가 조건: **{scenario['rule']}**"
         )
-        st.caption("시작자산은 100입니다. 수익률은 -80%~+80%, 5% 단위입니다. 제출은 한 번입니다.")
+        st.caption(
+            f"각 수익률은 {scenario['min_r']}%~{scenario['max_r']}%, {scenario['step']}% 단위입니다. "
+            "학생마다 제약조건이 다릅니다."
+        )
 
         old = my_response(my_class, me, "return_detective")
 
         if old:
             p = old["payload"]
             st.success(
-                f"제출 완료 · 수익률 {p['returns_pct']} · 산술평균 {p['arithmetic_pct']:.1f}% · "
-                f"기하평균 {p['geometric_pct']:.2f}% · 최종자산 {p['final_wealth']:.2f}"
+                f"제출 완료 · 수익률 {p['returns_pct']} · 최종자산 {p['final_wealth']:.2f} · "
+                f"이론적 최솟값과의 차이 {p['gap_pct']:.2f}%"
             )
-            wealth = p["wealth_path"]
             chart_df = pd.DataFrame({
                 "연도": [0, 1, 2, 3],
-                "자산": wealth
+                "자산": p["wealth_path"],
             }).set_index("연도")
             st.line_chart(chart_df)
-            st.caption("연도 0이 '시작'이므로 그래프의 맨 왼쪽이 시작자산 100입니다.")
+            st.caption("연도 0이 시작이므로 그래프의 맨 왼쪽이 시작자산 100입니다.")
+            st.metric("내 조건의 이론적 최솟값", f"{p['optimum']:.2f}")
         else:
-            c1, c2, c3 = st.columns(3)
-            r1 = c1.slider("1년차 수익률(%)", -80, 80, 10, step=5)
-            r2 = c2.slider("2년차 수익률(%)", -80, 80, 10, step=5)
-            r3 = c3.slider("3년차 수익률(%)", -80, 80, 10, step=5)
+            vals = []
+            cols = st.columns(3)
+            fixed = scenario.get("fixed", {})
 
-            returns = [r1 / 100, r2 / 100, r3 / 100]
-            arithmetic = (r1 + r2 + r3) / 3
-            geometric = geometric_mean(returns)
-            end = final_wealth(100, returns)
+            for i in range(3):
+                if i in fixed:
+                    cols[i].metric(f"{i+1}년차 수익률", f"{fixed[i]:+d}% (고정)")
+                    vals.append(fixed[i])
+                else:
+                    default = min(max(scenario["target_avg"], scenario["min_r"]), scenario["max_r"])
+                    v = cols[i].slider(
+                        f"{i+1}년차 수익률(%)",
+                        scenario["min_r"],
+                        scenario["max_r"],
+                        default,
+                        step=scenario["step"],
+                        key=f"return_{scenario['name']}_{i}",
+                    )
+                    vals.append(v)
 
-            if abs(arithmetic - 10) < 1e-9:
-                st.success("✅ 산술평균 10% 조건 충족")
-                st.metric("현재 최종자산", f"{end:.2f}")
+            avg = sum(vals) / 3
+            valid = scenario_valid(tuple(vals), scenario)
+            current_wealth = final_wealth(100, [v / 100 for v in vals])
+
+            st.metric("현재 산술평균", f"{avg:.2f}%")
+            if valid:
+                st.success("✅ 모든 제약조건 충족")
+                st.metric("현재 최종자산", f"{current_wealth:.2f}")
             else:
-                st.warning(f"산술평균이 현재 {arithmetic:.2f}%입니다. 정확히 10%로 맞춰야 제출할 수 있습니다.")
+                st.warning("아직 제약조건을 모두 만족하지 못했습니다.")
 
-            if st.button(
-                "🔒 이 조합으로 수익률 탐정 제출",
-                type="primary",
-                disabled=abs(arithmetic - 10) >= 1e-9,
-            ):
+            if st.button("🔒 이 조합으로 제출", type="primary", disabled=not valid):
                 value = 100.0
                 path = [value]
-                for r in returns:
+                for r in [v / 100 for v in vals]:
                     value *= (1 + r)
                     path.append(round(value, 4))
 
+                gap_pct = (current_wealth - optimum) / optimum * 100 if optimum else 0.0
                 save_response(my_class, me, "return_detective", {
-                    "returns_pct": [r1, r2, r3],
-                    "arithmetic_pct": arithmetic,
-                    "geometric_pct": round(geometric * 100, 4),
-                    "final_wealth": round(end, 4),
+                    "scenario": scenario["name"],
+                    "rule": scenario["rule"],
+                    "target_avg": scenario["target_avg"],
+                    "returns_pct": vals,
+                    "arithmetic_pct": avg,
+                    "geometric_pct": round(geometric_mean([v / 100 for v in vals]) * 100, 4),
+                    "final_wealth": round(current_wealth, 4),
+                    "optimum": round(optimum, 4),
+                    "gap_pct": round(gap_pct, 4),
                     "wealth_path": path,
                 })
                 st.rerun()
@@ -515,62 +645,84 @@ if role == "student":
     # 요구수익률 금고
     # ------------------------------------------------------
     elif phase == "요구수익률 금고":
-        st.subheader("5. 요구수익률 금고 · 세 개의 금고를 열어라")
-        st.write(
-            "수업에서 사용하는 단순화한 식 "
-            "**요구수익률 = 실질무위험수익률 + 기대물가상승률 + 위험보상률**을 이용합니다."
-        )
-        st.caption("각 금고의 요구수익률을 맞히면 1점입니다. 세 금고 모두 맞혀 3점을 만들어보세요.")
-
-        missions = [
-            ("금고 1", 2.0, 3.0, 4.0, 9.0),
-            ("금고 2", 1.5, 2.5, 3.0, 7.0),
-            ("금고 3", 2.5, 2.0, 5.0, 9.5),
-        ]
+        st.subheader("5. 요구수익률 금고 · 조립 → 역산 → 투자판단")
+        st.caption("세 금고는 서로 다른 방식으로 풀어야 합니다. 각 금고 1점, 총 3점입니다.")
 
         old = my_response(my_class, me, "required_vault")
+
         if old:
             p = old["payload"]
             st.success(f"제출 완료 · {p['score']} / 3개 금고 열림")
-            for i, m in enumerate(missions, start=1):
-                mine = p[f"answer{i}"]
-                correct = m[4]
-                if abs(mine - correct) < 1e-9:
-                    st.write(f"🔓 금고 {i}: 내 답 {mine:.1f}%")
-                else:
-                    st.write(f"🔒 금고 {i}: 내 답 {mine:.1f}% · 정답 {correct:.1f}%")
+
+            if p["m1_correct"]:
+                st.write(f"🔓 금고 1 · 조립: 내 답 {p['m1']:.1f}%")
+            else:
+                st.write(f"🔒 금고 1 · 조립: 내 답 {p['m1']:.1f}% · 정답 9.0%")
+
+            if p["m2_correct"]:
+                st.write(f"🔓 금고 2 · 역산: 내 답 {p['m2']:.1f}%")
+            else:
+                st.write(f"🔒 금고 2 · 역산: 내 답 {p['m2']:.1f}% · 정답 3.0%")
+
+            if p["m3_correct"]:
+                st.write(f"🔓 금고 3 · 투자판단: 내 선택 {p['m3']}")
+            else:
+                st.write(f"🔒 금고 3 · 투자판단: 내 선택 {p['m3']} · 정답 자산 A")
+
+            st.info(
+                "금고 1은 요구수익률을 직접 조립하고, 금고 2는 위험보상률을 거꾸로 찾고, "
+                "금고 3은 기대수익률과 요구수익률을 비교해 투자 매력도를 판단합니다."
+            )
         else:
             with st.form("required_vault_form"):
-                answers = []
-                for i, (label, real_rf, inflation, premium, correct) in enumerate(missions, start=1):
-                    st.markdown(f"#### {label}")
-                    st.write(
-                        f"실질무위험수익률 **{real_rf:.1f}%** · 기대물가상승률 **{inflation:.1f}%** · "
-                        f"위험보상률 **{premium:.1f}%**"
-                    )
-                    ans = st.number_input(
-                        f"{label}의 요구수익률(%)",
-                        min_value=0.0,
-                        max_value=30.0,
-                        step=0.5,
-                        key=f"vault_{i}",
-                    )
-                    answers.append(ans)
+                st.markdown("### 🔐 금고 1 · 조립")
+                st.write("실질무위험수익률 2% · 기대물가상승률 3% · 위험보상률 4%")
+                m1 = st.number_input(
+                    "요구수익률(%)",
+                    min_value=0.0, max_value=30.0, step=0.5,
+                    key="vault_m1",
+                )
 
-                submit = st.form_submit_button("🔒 세 금고 제출", type="primary")
-                if submit:
-                    score = sum(
-                        1 for ans, mission in zip(answers, missions)
-                        if abs(ans - mission[4]) < 1e-9
-                    )
-                    payload = {
-                        "answer1": answers[0],
-                        "answer2": answers[1],
-                        "answer3": answers[2],
-                        "score": score,
-                    }
-                    save_response(my_class, me, "required_vault", payload)
-                    st.rerun()
+                st.write("---")
+                st.markdown("### 🔐 금고 2 · 역산")
+                st.write("요구수익률 8% · 실질무위험수익률 2% · 기대물가상승률 3%")
+                m2 = st.number_input(
+                    "위험보상률(%)",
+                    min_value=0.0, max_value=20.0, step=0.5,
+                    key="vault_m2",
+                )
+
+                st.write("---")
+                st.markdown("### 🔐 금고 3 · 투자판단")
+                st.write("자산 A: 기대수익률 8%, 요구수익률 6%")
+                st.write("자산 B: 기대수익률 8%, 요구수익률 10%")
+                m3 = st.radio(
+                    "이 투자자에게 상대적으로 더 매력적인 자산은?",
+                    ["자산 A", "자산 B", "둘 다 같음"],
+                    index=None,
+                    key="vault_m3",
+                )
+
+                submitted = st.form_submit_button("🔒 세 금고 제출", type="primary")
+                if submitted:
+                    if m3 is None:
+                        st.warning("금고 3의 답을 선택해주세요.")
+                    else:
+                        m1_correct = abs(m1 - 9.0) < 1e-9
+                        m2_correct = abs(m2 - 3.0) < 1e-9
+                        m3_correct = m3 == "자산 A"
+                        score = int(m1_correct) + int(m2_correct) + int(m3_correct)
+
+                        save_response(my_class, me, "required_vault", {
+                            "m1": m1,
+                            "m2": m2,
+                            "m3": m3,
+                            "m1_correct": m1_correct,
+                            "m2_correct": m2_correct,
+                            "m3_correct": m3_correct,
+                            "score": score,
+                        })
+                        st.rerun()
 
     # ------------------------------------------------------
     # 결과
@@ -644,15 +796,15 @@ else:
                     "이름": r["name"],
                     "추정(만원)": p.get("guess"),
                     "정답(만원)": p.get("exact_pv"),
+                    "오차(만원)": p.get("error_abs"),
                     "오차율(%)": p.get("error_pct"),
-                    "점수": p.get("score"),
                 })
-            rank = pd.DataFrame(rows).sort_values(["오차율(%)", "이름"])
+            rank = pd.DataFrame(rows).sort_values(["오차율(%)", "오차(만원)", "이름"])
             st.dataframe(rank, use_container_width=True, hide_index=True)
 
     elif phase == "현금흐름 게임":
         df = all_responses(my_class, "cashflow_game")
-        st.subheader("현금흐름 게임 결과")
+        st.subheader("현금흐름 대결 결과")
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
@@ -661,22 +813,18 @@ else:
                 p = r["payload"] or {}
                 rows.append({
                     "이름": r["name"],
-                    "선불/후불 선택": p.get("annuity_guess"),
-                    "1년 후": p.get("year1"),
-                    "2년 후": p.get("year2"),
-                    "3년 후": p.get("year3"),
-                    "현재가치": p.get("my_pv"),
-                    "점수": p.get("score"),
+                    "1R": p.get("round1"),
+                    "2R": p.get("round2"),
+                    "3R": p.get("round3"),
+                    "정답수": p.get("score"),
                 })
-            result = pd.DataFrame(rows).sort_values(["점수", "현재가치"], ascending=[False, False])
+            result = pd.DataFrame(rows).sort_values(["정답수", "이름"], ascending=[False, True])
             st.dataframe(result, use_container_width=True, hide_index=True)
-
-            counts = result["선불/후불 선택"].value_counts()
-            st.bar_chart(counts)
+            st.bar_chart(result["정답수"].value_counts().sort_index())
 
     elif phase == "수익률 탐정":
         df = all_responses(my_class, "return_detective")
-        st.subheader("수익률 탐정 순위 · 최종자산이 작을수록 성공")
+        st.subheader("수익률 탐정 순위 · 자기 조건의 최솟값에 가까울수록 성공")
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
@@ -685,12 +833,15 @@ else:
                 p = r["payload"] or {}
                 rows.append({
                     "이름": r["name"],
+                    "미션": p.get("scenario"),
+                    "제약조건": p.get("rule"),
+                    "목표 산술평균(%)": p.get("target_avg"),
                     "수익률 조합": str(p.get("returns_pct")),
-                    "산술평균(%)": p.get("arithmetic_pct"),
-                    "기하평균(%)": p.get("geometric_pct"),
                     "최종자산": p.get("final_wealth"),
+                    "이론적 최솟값": p.get("optimum"),
+                    "최솟값과 차이(%)": p.get("gap_pct"),
                 })
-            rank = pd.DataFrame(rows).sort_values(["최종자산", "이름"])
+            rank = pd.DataFrame(rows).sort_values(["최솟값과 차이(%)", "이름"])
             st.dataframe(rank, use_container_width=True, hide_index=True)
 
     elif phase == "기대수익률 대결":
@@ -710,9 +861,19 @@ else:
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
-            scores = pd.Series([(p or {}).get("score", 0) for p in df["payload"]]).value_counts().sort_index()
-            st.bar_chart(scores)
-            st.metric("평균 열린 금고", f"{sum((p or {}).get('score', 0) for p in df['payload']) / len(df):.2f} / 3")
+            rows = []
+            for _, r in df.iterrows():
+                p = r["payload"] or {}
+                rows.append({
+                    "이름": r["name"],
+                    "조립": "O" if p.get("m1_correct") else "X",
+                    "역산": "O" if p.get("m2_correct") else "X",
+                    "투자판단": "O" if p.get("m3_correct") else "X",
+                    "총점": p.get("score", 0),
+                })
+            result = pd.DataFrame(rows).sort_values(["총점", "이름"], ascending=[False, True])
+            st.dataframe(result, use_container_width=True, hide_index=True)
+            st.bar_chart(result["총점"].value_counts().sort_index())
 
     elif phase == "결과":
         stages = [
