@@ -326,7 +326,7 @@ if role == "student":
             )
         else:
             with st.form("shortage_puzzle_form"):
-                st.markdown("### ① 추가로 필요한 은퇴일시금은?")
+                st.markdown("**① 추가로 필요한 은퇴일시금은?**")
                 st.write("은퇴시점에 확보될 것으로 예상되는 자산은 다음과 같습니다.")
                 st.write("- 현재 은퇴저축의 미래가치: **1.5억원**")
                 st.write("- 퇴직연금 예상자산: **0.7억원**")
@@ -437,10 +437,12 @@ if role == "student":
     elif phase == "자산배분 실험실":
         st.subheader("4. 자산배분 실험실 · 같은 조건, 서로 다른 답")
         st.write(
-            "모든 학생에게 같은 가상 상황이 주어집니다: **은퇴까지 15년 남았고, "
-            "중간 수준의 투자위험을 감수할 수 있는 상황**입니다."
+            "주식·채권·현금·대체자산의 비중을 직접 조정하면서 "
+            "**자산배분에 따라 기대수익률이 어떻게 달라지는지 확인해보세요.** "
+            "아래 조건을 모두 충족시키면서 **기대수익률을 최대한 높여보세요.**"
         )
         st.info(
+            "상황: 은퇴까지 15년 남았고, 중간 수준의 투자위험을 감수할 수 있음\n\n"
             "조건: 주식 ≤ 50% · 채권 ≥ 30% · 현금 ≥ 10% · 대체자산 ≤ 20% · "
             "가정 기대수익률 ≥ 4.0% · 합계 100%"
         )
@@ -455,7 +457,10 @@ if role == "student":
                 f"대체자산 {p['alt']}%"
             )
             st.metric("가정 기대수익률", f"{p['expected_return']:.2f}%")
-            st.info("정답은 하나가 아닙니다. 같은 조건에서도 여러 자산배분안이 가능합니다.")
+            st.info(
+                "정답은 하나가 아닙니다. 같은 조건에서도 여러 자산배분안이 가능합니다. "
+                "다른 학생들의 조합과 비교하면서 조건 안에서 기대수익률을 더 높일 수 있는지 생각해보세요."
+            )
         else:
             c1, c2, c3, c4 = st.columns(4)
             stock = c1.slider("주식(%)", 0, 100, 40, step=5)
@@ -656,6 +661,31 @@ else:
     elif phase == "플랜 구조대":
         df = all_responses(my_class, "plan_rescue")
         st.subheader("플랜 구조대 결과")
+
+        st.markdown("#### A·B·C 수정안 비교")
+        plan_options = {
+            "A": ("은퇴시기를 2년 늦춘다", case_values(retire_years=22, retirement_years=23)),
+            "B": ("목표 은퇴생활비를 월 350만원 → 330만원으로 조정한다", case_values(target_month=3_300_000)),
+            "C": ("다른 조건은 그대로 두고 예상수익률만 연 4% → 5%로 높여 잡는다", case_values(pre_return=0.05)),
+        }
+
+        option_rows = []
+        for key, (text, result) in plan_options.items():
+            monthly_man = result["monthly_saving"] / 10_000
+            option_rows.append({
+                "수정안": key,
+                "내용": text,
+                "수정 후 필요 월저축액": f"{monthly_man:.1f}만원",
+                "월 45만원 이내": "O" if monthly_man <= 45 else "X",
+            })
+        st.dataframe(pd.DataFrame(option_rows), use_container_width=True, hide_index=True)
+
+        st.caption(
+            "A와 B는 실제 설계조건을 바꾸는 방법이고, C는 실제 행동이나 목표는 그대로 둔 채 "
+            "예상수익률 가정만 높이는 방법입니다."
+        )
+
+        st.markdown("#### 학생 선택 결과")
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
@@ -675,6 +705,11 @@ else:
     elif phase == "자산배분 실험실":
         df = all_responses(my_class, "allocation")
         st.subheader("자산배분 실험실 결과")
+        st.caption(
+            "학생들은 같은 조건 안에서 주식·채권·현금·대체자산 비중을 조정하고, "
+            "기대수익률을 최대한 높이는 조합을 찾습니다."
+        )
+
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
@@ -683,20 +718,46 @@ else:
                 p = r["payload"] or {}
                 rows.append({
                     "이름": r["name"],
-                    "주식": p.get("stock"),
-                    "채권": p.get("bond"),
-                    "현금": p.get("cash"),
-                    "대체": p.get("alt"),
-                    "기대수익률": p.get("expected_return"),
+                    "주식(%)": p.get("stock"),
+                    "채권(%)": p.get("bond"),
+                    "현금(%)": p.get("cash"),
+                    "대체(%)": p.get("alt"),
+                    "기대수익률(%)": p.get("expected_return"),
                 })
-            result = pd.DataFrame(rows)
+            result = pd.DataFrame(rows).sort_values(
+                ["기대수익률(%)", "이름"], ascending=[False, True]
+            )
             st.dataframe(result, use_container_width=True, hide_index=True)
-            avg = result[["주식", "채권", "현금", "대체"]].mean()
+
+            c1, c2 = st.columns(2)
+            c1.metric("현재 최고 기대수익률", f"{result['기대수익률(%)'].max():.2f}%")
+            c2.metric("제출 학생", f"{len(result)}명")
+
+            avg = result[["주식(%)", "채권(%)", "현금(%)", "대체(%)"]].mean()
+            st.markdown("#### 학급 평균 자산배분")
             st.bar_chart(avg)
 
     elif phase == "공적연금 핵심판단":
         df = all_responses(my_class, "pension_core")
         st.subheader("공적연금 핵심판단 결과")
+
+        st.markdown("#### 교수용 정답·해설")
+        st.markdown(
+            "**① 가입기간 — 정답: 아니다**  \n"
+            "회사를 옮기거나 가입자 종류가 바뀌더라도 인정되는 국민연금 가입기간은 합산됩니다."
+        )
+        st.markdown(
+            "**② 제도의 성격 — 정답: 아니다**  \n"
+            "국민연금은 내가 낸 돈을 개인계좌에 그대로 적립해 돌려받는 개인저축상품이 아니라, "
+            "노령·장애·사망 등의 사회적 위험에 공동으로 대비하는 사회보험입니다."
+        )
+        st.markdown(
+            "**③ 은퇴설계에서의 역할 — 정답: 맞다**  \n"
+            "공적연금은 중요한 노후소득원이지만, 목표생활비·퇴직연금·개인연금·금융자산 등과 "
+            "함께 전체 은퇴설계 속에서 고려해야 합니다."
+        )
+
+        st.markdown("#### 학생 응답 결과")
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
