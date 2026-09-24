@@ -8,11 +8,11 @@ CLASSES = ["인하대", "숙대1", "숙대2"]
 PHASES = [
     "대기",
     "학생입장",
-    "정보수집 트리아지",
-    "부족자금 진단",
+    "사례 정보 찾기",
+    "부족자금 퍼즐",
     "플랜 구조대",
-    "자산배분 처방",
-    "공적연금 데스크",
+    "자산배분 실험실",
+    "공적연금 핵심판단",
     "결과",
     "종료",
 ]
@@ -147,7 +147,7 @@ def render_header(class_name, role):
 # ==========================================================
 if "role" not in st.session_state:
     st.title("🩺 Retirement Planner Clinic")
-    st.caption("4주차 · 한 고객의 은퇴설계를 진단하고, 부족한 계획을 고쳐봅니다.")
+    st.caption("4주차 · 사례를 통해 은퇴설계의 핵심 절차를 직접 적용해봅니다.")
     role = st.radio("접속 유형", ["학생", "교수"], horizontal=True)
 
     if role == "학생":
@@ -216,11 +216,13 @@ if role == "student":
     # ------------------------------------------------------
     # 1. 정보수집
     # ------------------------------------------------------
-    if phase == "정보수집 트리아지":
-        st.subheader("1. 정보수집 트리아지 · 빠진 정보를 찾아라")
+    if phase == "사례 정보 찾기":
+        st.subheader("1. 사례 정보 찾기 · 무엇이 더 필요할까?")
         st.write(
-            "고객 차트에는 **현재 나이 45세, 은퇴 희망 65세, 현재 은퇴자산 1억원, "
-            "목표 은퇴생활비 월 350만원**만 적혀 있습니다."
+            "다음은 **은퇴까지 20년 남은 가상 사례**입니다."
+        )
+        st.info(
+            "현재 은퇴자산 1억원 · 현재가치 기준 희망 은퇴생활비 월 350만원"
         )
         st.write("실행 가능한 은퇴설계를 위해 추가로 확인해야 할 항목을 모두 고르세요.")
 
@@ -239,21 +241,25 @@ if role == "student":
             "친구가 추천한 펀드의 수익률",
         ]
 
-        old = my_response(my_class, me, "triage")
+        old = my_response(my_class, me, "case_info")
         if old:
             p = old["payload"]
             st.success(f"제출 완료 · {p['score']} / 4")
             st.write("내 선택:", ", ".join(p["selected"]))
-            st.info("은퇴기간, 물가, 세후투자수익률, 공적연금 예상액은 은퇴설계의 핵심 가정·정보입니다.")
+            st.info(
+                "은퇴기간, 물가상승률, 세후투자수익률, 예상 공적연금액은 "
+                "은퇴설계의 핵심 정보·가정입니다. 특히 생활비가 '현재가치 기준'으로 "
+                "제시되어 있으므로 미래 생활비를 생각하려면 물가상승률 가정이 필요합니다."
+            )
         else:
-            with st.form("triage_form"):
+            with st.form("case_info_form"):
                 selected = st.multiselect("추가로 확인할 항목", options)
-                submitted = st.form_submit_button("🔒 트리아지 제출", type="primary")
+                submitted = st.form_submit_button("🔒 제출", type="primary")
                 if submitted:
                     selected_set = set(selected)
                     score = len(selected_set & correct_set) - len(selected_set - correct_set)
                     score = max(0, score)
-                    save_response(my_class, me, "triage", {
+                    save_response(my_class, me, "case_info", {
                         "selected": selected,
                         "score": score,
                         "perfect": selected_set == correct_set,
@@ -263,46 +269,71 @@ if role == "student":
     # ------------------------------------------------------
     # 2. 부족자금 진단
     # ------------------------------------------------------
-    elif phase == "부족자금 진단":
-        st.subheader("2. 부족자금 진단 · 3주차 계산을 실제 설계에 적용")
-        st.write(
-            "고객: 현재 45세, 65세 은퇴, 은퇴기간 25년, 목표 생활비 월 350만원, "
-            "예상 공적연금 월 150만원, 현재 은퇴자산 1억원."
-        )
-        st.write("가정: 은퇴 전 세후수익률 연 4%, 은퇴 후 세후수익률 연 3%.")
-        st.caption("계산을 단순화하기 위해 물가 조정은 이미 목표금액에 반영된 것으로 둡니다.")
+    elif phase == "부족자금 퍼즐":
+        st.subheader("2. 부족자금 퍼즐 · 복잡한 계산보다 구조를 보자")
+        st.write("앱이 화폐의 시간가치를 반영해 다음과 같이 계산했다고 가정합니다.")
 
-        old = my_response(my_class, me, "gap_diagnosis")
-        exact = BASE["monthly_saving"] / 10_000  # 만원
+        c1, c2 = st.columns(2)
+        c1.metric("은퇴시점에 필요한 총은퇴일시금", "4.2억원")
+        c2.metric("은퇴시점 예상 은퇴자산", "2.2억원")
+
+        old = my_response(my_class, me, "shortage_puzzle")
         if old:
             p = old["payload"]
-            st.success(
-                f"내 추정 {p['guess']:.0f}만원/월 · 계산값 {p['exact']:.1f}만원/월 · "
-                f"오차 {p['error_abs']:.1f}만원"
+            st.success(f"제출 완료 · {p['score']} / 2")
+            st.write(f"① 추가로 필요한 은퇴일시금: 내 답 **{p['q1']}** · 정답 **2.0억원**")
+            st.write(
+                "② 다음 단계: 내 답 **"
+                + p["q2"]
+                + "** · 정답 **필요한 저축액을 계산하고 실제 저축여력과 비교한다**"
             )
-            st.metric("총은퇴일시금", f"{BASE['total_lump']/100_000_000:.2f}억원")
-            st.metric("현재 자산의 은퇴시점 미래가치", f"{BASE['asset_fv']/100_000_000:.2f}억원")
-            st.metric("추가로 필요한 은퇴일시금", f"{BASE['shortage']/100_000_000:.2f}억원")
+            st.info(
+                "핵심은 복잡한 TVM 계산이 아니라, "
+                "'필요자금 − 준비될 자산 = 부족자금'의 구조를 이해하는 것입니다."
+            )
         else:
-            guess = st.slider("필요한 추가 월저축액을 추정하세요(만원)", 0, 100, 40, step=1)
-            if st.button("🔒 진단 제출", type="primary"):
-                save_response(my_class, me, "gap_diagnosis", {
-                    "guess": guess,
-                    "exact": round(exact, 4),
-                    "error_abs": round(abs(guess - exact), 4),
-                })
-                st.rerun()
+            with st.form("shortage_puzzle_form"):
+                q1 = st.radio(
+                    "① 추가로 필요한 은퇴일시금은?",
+                    ["1.0억원", "1.5억원", "2.0억원", "2.5억원"],
+                    index=None,
+                )
+                q2 = st.radio(
+                    "② 부족자금을 확인한 뒤 은퇴설계에서 다음으로 할 일은?",
+                    [
+                        "필요한 저축액을 계산하고 실제 저축여력과 비교한다",
+                        "최근 수익률이 가장 높은 상품을 바로 고른다",
+                        "은퇴생활비 목표를 먼저 없앤다",
+                        "현재 보유자산을 계산에서 제외한다",
+                    ],
+                    index=None,
+                )
+                submitted = st.form_submit_button("🧩 퍼즐 제출", type="primary")
+                if submitted:
+                    if q1 is None or q2 is None:
+                        st.warning("두 문항에 모두 답해주세요.")
+                    else:
+                        c1_ok = q1 == "2.0억원"
+                        c2_ok = q2 == "필요한 저축액을 계산하고 실제 저축여력과 비교한다"
+                        save_response(my_class, me, "shortage_puzzle", {
+                            "q1": q1,
+                            "q2": q2,
+                            "q1_correct": c1_ok,
+                            "q2_correct": c2_ok,
+                            "score": int(c1_ok) + int(c2_ok),
+                        })
+                        st.rerun()
 
     # ------------------------------------------------------
     # 3. 플랜 구조대
     # ------------------------------------------------------
     elif phase == "플랜 구조대":
-        st.subheader("3. 플랜 구조대 · 월저축 여력 45만원 안으로 구하라")
+        st.subheader("3. 플랜 구조대 · 숫자상 가능한 것과 좋은 가정을 구분하라")
         st.write(
-            f"현재 설계의 필요 월저축액은 약 **{BASE['monthly_saving']/10_000:.1f}만원**인데, "
-            "고객이 실제로 저축할 수 있는 금액은 **월 45만원**입니다."
+            "은퇴까지 20년 남은 가상 사례입니다. 앱의 계산 결과 필요한 추가 저축액은 "
+            f"월 **{BASE['monthly_saving']/10_000:.1f}만원**이지만, 실제 저축여력은 **월 45만원**입니다."
         )
-        st.write("다음 중 하나를 선택해 계획을 수정하세요.")
+        st.write("내가 먼저 검토할 수정안을 하나 선택하세요.")
 
         choices = {
             "A": ("은퇴시기를 2년 늦춘다", case_values(retire_years=22, retirement_years=23)),
@@ -313,14 +344,29 @@ if role == "student":
         old = my_response(my_class, me, "plan_rescue")
         if old:
             p = old["payload"]
-            if p["feasible"] and p["prudent"]:
-                st.success("구조 성공: 저축여력 안에 들어왔고, 단순히 낙관적 수익률 가정에 기대지 않았습니다.")
-            elif p["feasible"]:
-                st.warning("계산상 구조는 성공하지만, 예상수익률을 높여 잡는 것만으로 문제를 해결하는 것은 보수적 은퇴설계와 맞지 않습니다.")
+            st.write(f"내가 선택한 수정안: **{p['choice']}. {p['choice_text']}**")
+            st.write("---")
+
+            rows = []
+            for key, (text, result) in choices.items():
+                rows.append({
+                    "수정안": key,
+                    "내용": text,
+                    "수정 후 필요 월저축액": f"{result['monthly_saving']/10_000:.1f}만원",
+                    "월 45만원 이내": "O" if result["monthly_saving"]/10_000 <= 45 else "X",
+                })
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+            if p["choice"] in ("A", "B"):
+                st.success(
+                    "A와 B는 은퇴시기나 목표생활비처럼 실제 설계조건을 바꾸는 방법입니다. "
+                    "어느 쪽이 더 나은지는 개인의 가치와 상황에 따라 달라질 수 있습니다."
+                )
             else:
-                st.error("아직 월저축 여력 45만원을 초과합니다.")
-            st.write(f"내 선택: **{p['choice_text']}**")
-            st.metric("수정 후 필요 월저축액", f"{p['monthly_saving_man']:.1f}만원")
+                st.warning(
+                    "C도 계산상 필요저축액을 낮추지만, 실제 행동을 바꾸지 않고 "
+                    "미래 수익률 가정만 높인 것입니다. 은퇴설계에서는 이런 낙관적 가정을 주의해야 합니다."
+                )
         else:
             with st.form("rescue_form"):
                 choice = st.radio(
@@ -328,7 +374,7 @@ if role == "student":
                     [f"{k}. {v[0]}" for k, v in choices.items()],
                     index=None,
                 )
-                submitted = st.form_submit_button("🚑 이 수정안으로 구조", type="primary")
+                submitted = st.form_submit_button("🚑 이 수정안 선택", type="primary")
                 if submitted:
                     if choice is None:
                         st.warning("수정안을 선택해주세요.")
@@ -336,25 +382,21 @@ if role == "student":
                         key = choice[0]
                         text, result = choices[key]
                         monthly_man = result["monthly_saving"] / 10_000
-                        feasible = monthly_man <= 45
-                        prudent = key != "C"
                         save_response(my_class, me, "plan_rescue", {
                             "choice": key,
                             "choice_text": text,
                             "monthly_saving_man": round(monthly_man, 4),
-                            "feasible": feasible,
-                            "prudent": prudent,
                         })
                         st.rerun()
 
     # ------------------------------------------------------
     # 4. 자산배분 처방
     # ------------------------------------------------------
-    elif phase == "자산배분 처방":
-        st.subheader("4. 자산배분 처방 · 조건을 모두 만족시켜라")
+    elif phase == "자산배분 실험실":
+        st.subheader("4. 자산배분 실험실 · 같은 조건, 서로 다른 답")
         st.write(
-            "52세, 은퇴까지 13년 남은 중간 수준 위험성향 고객입니다. "
-            "아래 조건을 모두 만족하는 포트폴리오를 만드세요."
+            "모든 학생에게 같은 가상 상황이 주어집니다: **은퇴까지 15년 남았고, "
+            "중간 수준의 투자위험을 감수할 수 있는 상황**입니다."
         )
         st.info(
             "조건: 주식 ≤ 50% · 채권 ≥ 30% · 현금 ≥ 10% · 대체자산 ≤ 20% · "
@@ -365,12 +407,13 @@ if role == "student":
         old = my_response(my_class, me, "allocation")
         if old:
             p = old["payload"]
-            st.success("처방 승인 완료")
+            st.success("내 자산배분안 제출 완료")
             st.write(
                 f"주식 {p['stock']}% · 채권 {p['bond']}% · 현금 {p['cash']}% · "
                 f"대체자산 {p['alt']}%"
             )
             st.metric("가정 기대수익률", f"{p['expected_return']:.2f}%")
+            st.info("정답은 하나가 아닙니다. 같은 조건에서도 여러 자산배분안이 가능합니다.")
         else:
             c1, c2, c3, c4 = st.columns(4)
             stock = c1.slider("주식(%)", 0, 100, 40, step=5)
@@ -380,24 +423,27 @@ if role == "student":
 
             total = stock + bond + cash + alt
             er = stock*0.07 + bond*0.03 + cash*0.02 + alt*0.05
-            valid = (
-                total == 100
-                and stock <= 50
-                and bond >= 30
-                and cash >= 10
-                and alt <= 20
-                and er >= 4.0
-            )
+
+            checks = {
+                "합계 100%": total == 100,
+                "주식 ≤ 50%": stock <= 50,
+                "채권 ≥ 30%": bond >= 30,
+                "현금 ≥ 10%": cash >= 10,
+                "대체자산 ≤ 20%": alt <= 20,
+                "기대수익률 ≥ 4.0%": er >= 4.0,
+            }
+            valid = all(checks.values())
 
             st.metric("합계", f"{total}%")
             st.metric("가정 기대수익률", f"{er:.2f}%")
+            st.write(" · ".join([f"{'✅' if ok else '❌'} {label}" for label, ok in checks.items()]))
 
             if valid:
-                st.success("✅ 모든 조건 충족 — 처방 가능")
+                st.success("모든 조건을 만족했습니다. 이 조합도 가능한 자산배분안입니다.")
             else:
-                st.warning("아직 모든 조건을 만족하지 못했습니다.")
+                st.warning("조건을 보면서 비중을 다시 조정해보세요.")
 
-            if st.button("💊 이 포트폴리오 처방", type="primary", disabled=not valid):
+            if st.button("📊 이 자산배분안 제출", type="primary", disabled=not valid):
                 save_response(my_class, me, "allocation", {
                     "stock": stock,
                     "bond": bond,
@@ -410,71 +456,51 @@ if role == "student":
     # ------------------------------------------------------
     # 5. 공적연금 데스크
     # ------------------------------------------------------
-    elif phase == "공적연금 데스크":
-        st.subheader("5. 2026 공적연금 데스크 · 3명의 고객을 처리하라")
-        st.caption("2026년 현재 제도를 기준으로 합니다. 제출 후 정답을 공개합니다.")
+    elif phase == "공적연금 핵심판단":
+        st.subheader("5. 공적연금 핵심판단 · 지금 기억할 것은 숫자가 아니라 원리")
+        st.caption("보험료율이나 수급액 같은 세부 숫자가 아니라, 대학생이 앞으로 기억할 핵심 원리를 확인합니다.")
 
-        old = my_response(my_class, me, "pension_desk")
+        old = my_response(my_class, me, "pension_core")
         if old:
             p = old["payload"]
             st.success(f"제출 완료 · {p['score']} / 3")
 
-            st.markdown("#### 고객 1 · 사업장가입자")
-            st.write("기준소득월액 300만원, 2026년 보험료율 9.5%")
-            st.write(f"내 선택: {p['q1']} · 정답: **14만 2,500원**")
+            st.markdown("#### ① 가입기간")
+            st.write(f"내 판단: {p['q1']} · 정답: **아니다**")
+            st.caption("회사를 옮기거나 가입자 종류가 바뀌어도 인정되는 가입기간은 합산됩니다.")
 
-            st.markdown("#### 고객 2 · 크레딧")
-            st.write(f"내 선택: {p['q2']} · 정답: **첫째아 12개월 / 군복무 최대 12개월**")
+            st.markdown("#### ② 제도의 성격")
+            st.write(f"내 판단: {p['q2']} · 정답: **아니다**")
+            st.caption("국민연금은 개인저축통장이 아니라 사회적 위험에 공동으로 대비하는 사회보험입니다.")
 
-            st.markdown("#### 고객 3 · 조기·연기")
-            st.write(f"내 선택: {p['q3']} · 정답: **5년 조기 70만원 / 5년 연기 136만원**")
+            st.markdown("#### ③ 은퇴설계에서의 역할")
+            st.write(f"내 판단: {p['q3']} · 정답: **맞다**")
+            st.caption("공적연금은 중요한 노후소득원이지만, 개인의 전체 은퇴설계를 대신하지는 않습니다.")
         else:
-            with st.form("pension_desk_form"):
-                st.markdown("### 고객 1")
-                q1 = st.radio(
-                    "기준소득월액 300만원인 사업장가입자의 2026년 근로자 본인 부담 월보험료는?",
-                    ["13만 5,000원", "14만 2,500원", "28만 5,000원", "30만원"],
-                    index=None,
-                    key="w4q1",
-                )
+            with st.form("pension_core_form"):
+                st.markdown("### ① 가입기간")
+                st.write("“취업 후 회사를 옮기거나 가입자 종류가 바뀌면, 이전 국민연금 가입기간은 사라지고 다시 시작한다.”")
+                q1 = st.radio("판단", ["맞다", "아니다"], index=None, horizontal=True, key="w4core1")
 
                 st.write("---")
-                st.markdown("### 고객 2")
-                q2 = st.radio(
-                    "2026년부터 확대된 국민연금 크레딧의 조합으로 맞는 것은?",
-                    [
-                        "첫째아 없음 / 군복무 6개월",
-                        "첫째아 12개월 / 군복무 최대 12개월",
-                        "첫째아 6개월 / 군복무 최대 18개월",
-                        "둘 다 24개월",
-                    ],
-                    index=None,
-                    key="w4q2",
-                )
+                st.markdown("### ② 제도의 성격")
+                st.write("“국민연금은 내가 낸 돈을 내 개인계좌에 그대로 쌓아두었다가 돌려받는 개인저축 상품이다.”")
+                q2 = st.radio("판단", ["맞다", "아니다"], index=None, horizontal=True, key="w4core2")
 
                 st.write("---")
-                st.markdown("### 고객 3")
-                q3 = st.radio(
-                    "정상 노령연금이 월 100만원이라고 단순 가정할 때, 5년 조기수령과 5년 연기의 월액 조합은?",
-                    [
-                        "70만원 / 136만원",
-                        "70만원 / 130만원",
-                        "75만원 / 136만원",
-                        "80만원 / 130만원",
-                    ],
-                    index=None,
-                    key="w4q3",
-                )
+                st.markdown("### ③ 은퇴설계에서의 역할")
+                st.write("“공적연금은 노후소득의 중요한 한 축이지만, 공적연금만 안다고 은퇴설계가 끝나는 것은 아니다.”")
+                q3 = st.radio("판단", ["맞다", "아니다"], index=None, horizontal=True, key="w4core3")
 
-                submitted = st.form_submit_button("🔒 세 고객 처리 완료", type="primary")
+                submitted = st.form_submit_button("🔒 세 문장 판단 완료", type="primary")
                 if submitted:
                     if any(x is None for x in [q1, q2, q3]):
-                        st.warning("세 문제에 모두 답해주세요.")
+                        st.warning("세 문장에 모두 답해주세요.")
                     else:
-                        c1 = q1 == "14만 2,500원"
-                        c2 = q2 == "첫째아 12개월 / 군복무 최대 12개월"
-                        c3 = q3 == "70만원 / 136만원"
-                        save_response(my_class, me, "pension_desk", {
+                        c1 = q1 == "아니다"
+                        c2 = q2 == "아니다"
+                        c3 = q3 == "맞다"
+                        save_response(my_class, me, "pension_core", {
                             "q1": q1, "q2": q2, "q3": q3,
                             "q1_correct": c1, "q2_correct": c2, "q3_correct": c3,
                             "score": int(c1) + int(c2) + int(c3),
@@ -484,11 +510,11 @@ if role == "student":
     elif phase == "결과":
         st.subheader("6. 나의 Retirement Planner Clinic 기록")
         stages = [
-            ("정보수집", "triage"),
-            ("부족자금", "gap_diagnosis"),
+            ("사례정보", "case_info"),
+            ("부족자금", "shortage_puzzle"),
             ("플랜구조", "plan_rescue"),
             ("자산배분", "allocation"),
-            ("공적연금", "pension_desk"),
+            ("공적연금", "pension_core"),
         ]
         cols = st.columns(5)
         for col, (label, key) in zip(cols, stages):
@@ -516,9 +542,9 @@ else:
     st.metric("접속 학생", f"{len(students)}명")
     st.write("---")
 
-    if phase == "정보수집 트리아지":
-        df = all_responses(my_class, "triage")
-        st.subheader("정보수집 트리아지 결과")
+    if phase == "사례 정보 찾기":
+        df = all_responses(my_class, "case_info")
+        st.subheader("사례 정보 찾기 결과")
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
@@ -526,9 +552,9 @@ else:
             st.metric("평균 점수", f"{scores.mean():.2f} / 4")
             st.bar_chart(scores.value_counts().sort_index())
 
-    elif phase == "부족자금 진단":
-        df = all_responses(my_class, "gap_diagnosis")
-        st.subheader("부족자금 진단 결과")
+    elif phase == "부족자금 퍼즐":
+        df = all_responses(my_class, "shortage_puzzle")
+        st.subheader("부족자금 퍼즐 결과")
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
@@ -537,12 +563,13 @@ else:
                 p = r["payload"] or {}
                 rows.append({
                     "이름": r["name"],
-                    "추정 월저축(만원)": p.get("guess"),
-                    "계산값(만원)": p.get("exact"),
-                    "오차(만원)": p.get("error_abs"),
+                    "부족자금": "O" if p.get("q1_correct") else "X",
+                    "다음 단계": "O" if p.get("q2_correct") else "X",
+                    "총점": p.get("score", 0),
                 })
-            rank = pd.DataFrame(rows).sort_values(["오차(만원)", "이름"])
-            st.dataframe(rank, use_container_width=True, hide_index=True)
+            result = pd.DataFrame(rows).sort_values(["총점", "이름"], ascending=[False, True])
+            st.dataframe(result, use_container_width=True, hide_index=True)
+            st.bar_chart(result["총점"].value_counts().sort_index())
 
     elif phase == "플랜 구조대":
         df = all_responses(my_class, "plan_rescue")
@@ -557,17 +584,15 @@ else:
                     "이름": r["name"],
                     "선택": p.get("choice"),
                     "수정안": p.get("choice_text"),
-                    "필요 월저축(만원)": p.get("monthly_saving_man"),
-                    "저축여력 내": "O" if p.get("feasible") else "X",
-                    "보수적 가정": "O" if p.get("prudent") else "X",
+                    "수정 후 필요 월저축(만원)": p.get("monthly_saving_man"),
                 })
             result = pd.DataFrame(rows)
             st.dataframe(result, use_container_width=True, hide_index=True)
             st.bar_chart(result["선택"].value_counts())
 
-    elif phase == "자산배분 처방":
+    elif phase == "자산배분 실험실":
         df = all_responses(my_class, "allocation")
-        st.subheader("자산배분 처방 결과")
+        st.subheader("자산배분 실험실 결과")
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
@@ -587,9 +612,9 @@ else:
             avg = result[["주식", "채권", "현금", "대체"]].mean()
             st.bar_chart(avg)
 
-    elif phase == "공적연금 데스크":
-        df = all_responses(my_class, "pension_desk")
-        st.subheader("공적연금 데스크 결과")
+    elif phase == "공적연금 핵심판단":
+        df = all_responses(my_class, "pension_core")
+        st.subheader("공적연금 핵심판단 결과")
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
@@ -598,9 +623,9 @@ else:
                 p = r["payload"] or {}
                 rows.append({
                     "이름": r["name"],
-                    "보험료": "O" if p.get("q1_correct") else "X",
-                    "크레딧": "O" if p.get("q2_correct") else "X",
-                    "조기·연기": "O" if p.get("q3_correct") else "X",
+                    "가입기간": "O" if p.get("q1_correct") else "X",
+                    "사회보험": "O" if p.get("q2_correct") else "X",
+                    "은퇴설계 역할": "O" if p.get("q3_correct") else "X",
                     "총점": p.get("score", 0),
                 })
             result = pd.DataFrame(rows).sort_values(["총점", "이름"], ascending=[False, True])
@@ -609,11 +634,11 @@ else:
 
     elif phase == "결과":
         stages = [
-            ("정보수집", "triage"),
-            ("부족자금", "gap_diagnosis"),
+            ("사례정보", "case_info"),
+            ("부족자금", "shortage_puzzle"),
             ("플랜구조", "plan_rescue"),
             ("자산배분", "allocation"),
-            ("공적연금", "pension_desk"),
+            ("공적연금", "pension_core"),
         ]
         rows = [{"활동": label, "제출 인원": len(all_responses(my_class, key))} for label, key in stages]
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
