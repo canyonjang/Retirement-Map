@@ -244,24 +244,55 @@ if role == "student":
         old = my_response(my_class, me, "case_info")
         if old:
             p = old["payload"]
-            st.success(f"제출 완료 · {p['score']} / 4")
+            found = p.get("found_count", 0)
+            extra = p.get("extra_count", 0)
+
+            st.success(f"핵심정보 4개 중 **{found}개 발견**")
+            if extra == 0:
+                st.info("불필요한 정보는 선택하지 않았습니다.")
+            else:
+                st.warning(f"불필요한 정보도 **{extra}개 선택**했습니다.")
+
             st.write("내 선택:", ", ".join(p["selected"]))
-            st.info(
-                "은퇴기간, 물가상승률, 세후투자수익률, 예상 공적연금액은 "
-                "은퇴설계의 핵심 정보·가정입니다. 특히 생활비가 '현재가치 기준'으로 "
-                "제시되어 있으므로 미래 생활비를 생각하려면 물가상승률 가정이 필요합니다."
-            )
+
+            missed = p.get("missed", [])
+            extras = p.get("extras", [])
+
+            if missed:
+                st.write("아직 찾지 못한 핵심정보:", ", ".join(missed))
+            if extras:
+                st.write("은퇴설계와 직접 관련 없는 선택:", ", ".join(extras))
+
+            if found == 4 and extra == 0:
+                st.success("필요한 정보만 정확하게 골라냈습니다.")
+            elif found == 4:
+                st.info(
+                    "필요한 정보는 모두 찾았습니다. 이제 은퇴설계에 직접 필요한 정보와 "
+                    "그렇지 않은 정보를 구분해보세요."
+                )
+            else:
+                st.info(
+                    "은퇴기간, 물가상승률, 세후투자수익률, 예상 공적연금액은 "
+                    "은퇴설계의 핵심 정보·가정입니다. 특히 생활비가 '현재가치 기준'으로 "
+                    "제시되어 있으므로 미래 생활비를 생각하려면 물가상승률 가정이 필요합니다."
+                )
         else:
             with st.form("case_info_form"):
                 selected = st.multiselect("추가로 확인할 항목", options)
                 submitted = st.form_submit_button("🔒 제출", type="primary")
                 if submitted:
                     selected_set = set(selected)
-                    score = len(selected_set & correct_set) - len(selected_set - correct_set)
-                    score = max(0, score)
+                    found_items = sorted(selected_set & correct_set)
+                    extra_items = sorted(selected_set - correct_set)
+                    missed_items = sorted(correct_set - selected_set)
+
                     save_response(my_class, me, "case_info", {
                         "selected": selected,
-                        "score": score,
+                        "found_count": len(found_items),
+                        "extra_count": len(extra_items),
+                        "found": found_items,
+                        "extras": extra_items,
+                        "missed": missed_items,
                         "perfect": selected_set == correct_set,
                     })
                     st.rerun()
@@ -271,33 +302,44 @@ if role == "student":
     # ------------------------------------------------------
     elif phase == "부족자금 퍼즐":
         st.subheader("2. 부족자금 퍼즐 · 복잡한 계산보다 구조를 보자")
-        st.write("앱이 화폐의 시간가치를 반영해 다음과 같이 계산했다고 가정합니다.")
+        st.write("앱이 화폐의 시간가치를 반영해 **은퇴시점에 필요한 총은퇴일시금**을 계산했다고 가정합니다.")
 
-        c1, c2 = st.columns(2)
-        c1.metric("은퇴시점에 필요한 총은퇴일시금", "4.2억원")
-        c2.metric("은퇴시점 예상 은퇴자산", "2.2억원")
+        st.metric("은퇴시점에 필요한 총은퇴일시금", "4.2억원")
 
         old = my_response(my_class, me, "shortage_puzzle")
         if old:
             p = old["payload"]
             st.success(f"제출 완료 · {p['score']} / 2")
             st.write(f"① 추가로 필요한 은퇴일시금: 내 답 **{p['q1']}** · 정답 **2.0억원**")
+            st.caption(
+                "현재 은퇴저축의 미래가치 1.5억원 + 퇴직연금 예상자산 0.7억원 = "
+                "은퇴에 사용할 예상자산 2.2억원. 비상자금 0.3억원은 은퇴자금으로 사용하지 않으므로 제외합니다."
+            )
             st.write(
                 "② 다음 단계: 내 답 **"
                 + p["q2"]
                 + "** · 정답 **필요한 저축액을 계산하고 실제 저축여력과 비교한다**"
             )
             st.info(
-                "핵심은 복잡한 TVM 계산이 아니라, "
-                "'필요자금 − 준비될 자산 = 부족자금'의 구조를 이해하는 것입니다."
+                "핵심은 단순히 가진 돈을 모두 더하는 것이 아니라, "
+                "은퇴에 실제로 사용할 자산을 구분한 뒤 '필요자금 − 준비될 은퇴자산 = 부족자금'의 구조를 이해하는 것입니다."
             )
         else:
             with st.form("shortage_puzzle_form"):
+                st.markdown("### ① 추가로 필요한 은퇴일시금은?")
+                st.write("은퇴시점에 확보될 것으로 예상되는 자산은 다음과 같습니다.")
+                st.write("- 현재 은퇴저축의 미래가치: **1.5억원**")
+                st.write("- 퇴직연금 예상자산: **0.7억원**")
+                st.write("- 별도로 보유한 비상자금: **0.3억원**")
+                st.caption("단, 비상자금은 은퇴자금으로 사용하지 않습니다.")
+
                 q1 = st.radio(
-                    "① 추가로 필요한 은퇴일시금은?",
-                    ["1.0억원", "1.5억원", "2.0억원", "2.5억원"],
+                    "추가로 필요한 은퇴일시금",
+                    ["1.7억원", "2.0억원", "2.3억원", "2.7억원"],
                     index=None,
                 )
+
+                st.write("---")
                 q2 = st.radio(
                     "② 부족자금을 확인한 뒤 은퇴설계에서 다음으로 할 일은?",
                     [
@@ -548,9 +590,49 @@ else:
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
-            scores = pd.Series([(p or {}).get("score", 0) for p in df["payload"]])
-            st.metric("평균 점수", f"{scores.mean():.2f} / 4")
-            st.bar_chart(scores.value_counts().sort_index())
+            rows = []
+            for _, r in df.iterrows():
+                p = r["payload"] or {}
+
+                # 예전 테스트 데이터가 남아 있어도 화면이 깨지지 않도록 보정
+                selected = set(p.get("selected", []))
+                correct_set = {
+                    "예상 은퇴기간(또는 기대수명)",
+                    "예상 물가상승률",
+                    "은퇴자산의 세후투자수익률",
+                    "예상 공적연금액",
+                }
+                found_count = p.get("found_count", len(selected & correct_set))
+                extra_count = p.get("extra_count", len(selected - correct_set))
+
+                rows.append({
+                    "이름": r["name"],
+                    "핵심정보 발견": f"{found_count}/4",
+                    "불필요정보 선택": extra_count,
+                    "핵심정보 모두 발견": "O" if found_count == 4 else "X",
+                    "불필요정보 없음": "O" if extra_count == 0 else "X",
+                })
+
+            result = pd.DataFrame(rows)
+            st.dataframe(result, use_container_width=True, hide_index=True)
+
+            avg_found = []
+            avg_extra = []
+            for _, r in df.iterrows():
+                p = r["payload"] or {}
+                selected = set(p.get("selected", []))
+                correct_set = {
+                    "예상 은퇴기간(또는 기대수명)",
+                    "예상 물가상승률",
+                    "은퇴자산의 세후투자수익률",
+                    "예상 공적연금액",
+                }
+                avg_found.append(p.get("found_count", len(selected & correct_set)))
+                avg_extra.append(p.get("extra_count", len(selected - correct_set)))
+
+            c1, c2 = st.columns(2)
+            c1.metric("평균 핵심정보 발견", f"{sum(avg_found)/len(avg_found):.2f} / 4")
+            c2.metric("평균 불필요정보 선택", f"{sum(avg_extra)/len(avg_extra):.2f}개")
 
     elif phase == "부족자금 퍼즐":
         df = all_responses(my_class, "shortage_puzzle")
