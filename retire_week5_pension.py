@@ -135,13 +135,62 @@ ACCOUNT_CASES = [
     },
 ]
 
-FLOW_ORDER = [
-    "첫 직장에 취업한다",
-    "회사의 퇴직연금(DB 또는 DC)이 시작된다",
-    "DC형이라면 적립금 운용방법을 직접 선택·관리한다",
-    "이직 또는 퇴직을 한다",
-    "퇴직급여를 IRP로 이전하여 이어서 관리한다",
-    "은퇴 후 퇴직연금·개인연금을 노후소득으로 활용한다",
+PATH_CASES = [
+    {
+        "title": "체크포인트 1 · 첫 직장",
+        "text": "민지의 첫 직장 퇴직연금은 DC형입니다. 회사가 부담금을 납입했습니다. 민지가 할 행동은?",
+        "options": [
+            "회사가 알아서 운용할 것이므로 그대로 둔다",
+            "운용상품과 자산배분을 직접 확인한다",
+            "퇴직할 때 한꺼번에 운용한다",
+        ],
+        "answer": "운용상품과 자산배분을 직접 확인한다",
+        "explain": "DC형은 근로자가 적립금 운용방법을 선택하고 운용결과에 책임을 집니다.",
+    },
+    {
+        "title": "체크포인트 2 · 운용지시를 미루고 있음",
+        "text": "민지는 바빠서 DC 운용지시를 계속 미루고 있습니다. 가장 먼저 확인할 것은?",
+        "options": [
+            "사전지정운용방법(디폴트옵션)이 어떻게 설정되어 있는지 확인한다",
+            "국민연금 예상수령액만 확인한다",
+            "퇴직급여를 지금 현금으로 인출한다",
+        ],
+        "answer": "사전지정운용방법(디폴트옵션)이 어떻게 설정되어 있는지 확인한다",
+        "explain": "디폴트옵션은 장기간 운용지시가 없는 상황을 줄이기 위한 장치입니다.",
+    },
+    {
+        "title": "체크포인트 3 · 이직",
+        "text": "5년 뒤 이직합니다. 퇴직급여를 당장 소비하지 않고 노후자금으로 이어서 관리하고 싶습니다.",
+        "options": [
+            "IRP로 이전하여 이어서 관리한다",
+            "생활비 통장에 받아 둔다",
+            "연금저축펀드로만 이전해야 한다",
+        ],
+        "answer": "IRP로 이전하여 이어서 관리한다",
+        "explain": "IRP는 이직·퇴직 시 퇴직급여를 이전받아 계속 관리하는 계좌로 활용됩니다.",
+    },
+    {
+        "title": "체크포인트 4 · 개인 노후저축",
+        "text": "퇴직급여 이전 목적은 아니고, 장기 ETF 투자에서 위험자산 운용의 자유도가 중요합니다. 무엇을 우선 비교해볼까요?",
+        "options": [
+            "연금저축펀드의 특성을 우선 비교한다",
+            "IRP만 가능하므로 다른 계좌는 볼 필요가 없다",
+            "비상자금 통장을 연금계좌로 바꾼다",
+        ],
+        "answer": "연금저축펀드의 특성을 우선 비교한다",
+        "explain": "수업에서 다루는 단순화된 비교에서 연금저축펀드는 위험자산 비중 제한이 없다는 특징이 있습니다.",
+    },
+    {
+        "title": "체크포인트 5 · 갑자기 필요한 돈",
+        "text": "1년 안에 이사비로 사용할 가능성이 큰 500만원이 생겼습니다. 세액공제만 보고 전부 연금계좌에 넣을까요?",
+        "options": [
+            "전부 IRP에 넣는다",
+            "전부 연금저축에 넣는다",
+            "연금계좌와 분리해 필요한 유동성을 확보한다",
+        ],
+        "answer": "연금계좌와 분리해 필요한 유동성을 확보한다",
+        "explain": "가까운 시일 안에 쓸 가능성이 큰 비상자금은 세제혜택만 보고 장기 연금계좌에 묶지 않는 판단이 중요합니다.",
+    },
 ]
 
 # 로그인
@@ -267,76 +316,133 @@ if role == "student":
                         st.rerun()
 
     elif phase == "TDF 착륙작전":
-        st.subheader("3. TDF 착륙작전 · 성장기회는 살리고, 은퇴 직전 충격은 줄여라")
-        st.caption("아래 비율은 실제 특정 TDF가 아니라 수업용 가상 글라이드패스입니다.")
-        st.info(
-            "미션: 세 시점의 위험자산 비중을 정하세요. **적정 범위 안에서 시간이 갈수록 위험자산을 줄이고**, "
-            "은퇴 2년 전 가상 시장충격의 손실을 **10% 이내**로 막으면서 "
-            "**성장점수(세 시점 위험자산 비중의 합)를 최대한 높여보세요.**"
+        st.subheader("3. TDF 착륙작전 · 내 글라이드패스가 은퇴자산에 미치는 영향")
+        st.caption(
+            "실제 TDF의 위험자산 비중과 글라이드패스는 상품마다 다릅니다. "
+            "이 활동은 원리를 비교하기 위한 **수업용 가상 시뮬레이션**입니다."
         )
-        st.write("수업용 적정 범위: **30년 전 70~90% · 10년 전 40~60% · 2년 전 20~40%**")
-        st.caption("가상 시장충격: 위험자산 -30%, 안정자산 +2%")
+
+        st.info(
+            "세 시점의 위험자산 비중을 직접 정해보세요. "
+            "먼저 **예상 은퇴자산**을 확인한 뒤, 같은 선택이 은퇴 직전 **시장 충격**을 만났을 때 "
+            "어떤 차이가 생기는지 확인합니다."
+        )
+
+        assumption_df = pd.DataFrame([
+            {"수업용 가정": "은퇴 30년 전 시작자산", "값": "1억원"},
+            {"수업용 가정": "위험자산 연 기대수익률", "값": "7%"},
+            {"수업용 가정": "안정자산 연 기대수익률", "값": "3%"},
+            {"수업용 가정": "자산배분 적용기간", "값": "30→10년 전: 20년 / 10→2년 전: 8년 / 2년 전→은퇴: 2년"},
+        ])
+        st.dataframe(assumption_df, use_container_width=True, hide_index=True)
 
         old = my_response(my_class, me, "tdf_landing")
-        if old:
+
+        if not old:
+            with st.form("tdf_landing_form"):
+                st.markdown("#### Round 1 · 은퇴 30년 전")
+                r30 = st.slider("위험자산 비중(%)", 0, 100, 80, step=5, key="tdf_r30")
+
+                st.markdown("#### Round 2 · 은퇴 10년 전")
+                r10 = st.slider("위험자산 비중(%)", 0, 100, 55, step=5, key="tdf_r10")
+
+                st.markdown("#### Round 3 · 은퇴 2년 전")
+                r2 = st.slider("위험자산 비중(%)", 0, 100, 30, step=5, key="tdf_r2")
+
+                submitted = st.form_submit_button("📈 예상 은퇴자산 확인", type="primary")
+                if submitted:
+                    def port_rate(w):
+                        return (w / 100) * 0.07 + ((100 - w) / 100) * 0.03
+
+                    start_asset = 100_000_000
+                    rate30 = port_rate(r30)
+                    rate10 = port_rate(r10)
+                    rate2 = port_rate(r2)
+
+                    asset_10 = start_asset * ((1 + rate30) ** 20)
+                    asset_2 = asset_10 * ((1 + rate10) ** 8)
+                    retirement_asset = asset_2 * ((1 + rate2) ** 2)
+
+                    shock_return = (r2 / 100) * (-0.30) + ((100 - r2) / 100) * 0.02
+                    after_shock_asset_2 = asset_2 * (1 + shock_return)
+                    retirement_after_shock = after_shock_asset_2 * ((1 + rate2) ** 2)
+                    shock_loss = retirement_asset - retirement_after_shock
+
+                    save_response(my_class, me, "tdf_landing", {
+                        "r30": r30,
+                        "r10": r10,
+                        "r2": r2,
+                        "rate30": round(rate30 * 100, 4),
+                        "rate10": round(rate10 * 100, 4),
+                        "rate2": round(rate2 * 100, 4),
+                        "asset_10": round(asset_10),
+                        "asset_2": round(asset_2),
+                        "retirement_asset": round(retirement_asset),
+                        "glide_direction": r30 >= r10 >= r2,
+                        "shock_return": round(shock_return * 100, 4),
+                        "after_shock_asset_2": round(after_shock_asset_2),
+                        "retirement_after_shock": round(retirement_after_shock),
+                        "shock_loss": round(shock_loss),
+                        "shock_revealed": False,
+                    })
+                    st.rerun()
+
+        else:
             p = old["payload"]
-            if p["landing_success"]:
-                st.success(f"✅ 안전 착륙 성공 · 성장점수 **{p['growth_score']} / 185**")
-            else:
-                st.warning(f"착륙 조건을 모두 충족하지 못했습니다 · 성장점수 {p['growth_score']}")
+
             c1, c2, c3 = st.columns(3)
             c1.metric("은퇴 30년 전", f"위험자산 {p['r30']}%")
             c2.metric("은퇴 10년 전", f"위험자산 {p['r10']}%")
             c3.metric("은퇴 2년 전", f"위험자산 {p['r2']}%")
-            st.metric("은퇴 2년 전 가상 충격 시 포트폴리오 수익률", f"{p['shock_return']:.1f}%")
-            st.write(
-                "착륙 조건:",
-                f"{'✅' if p['range_ok'] else '❌'} 시점별 적정범위 · "
-                f"{'✅' if p['descending_ok'] else '❌'} 위험자산 감소 · "
-                f"{'✅' if p['shock_ok'] else '❌'} 충격 손실 10% 이내",
-            )
-            st.markdown("#### ✈️ 계획 변경 카드")
-            st.write("예상보다 **5년 일찍 은퇴**하게 되었다면 글라이드패스를 어떻게 검토해야 할까요?")
-            st.write(f"내 선택: **{p['surprise']}**")
-            if p["surprise_correct"]:
-                st.success("목표시점이 가까워졌으므로 위험자산을 더 줄이는 방향을 검토하는 판단이 적절합니다.")
+
+            st.markdown("#### 내 선택에 따른 예상 자산")
+            result_df = pd.DataFrame([
+                {"시점": "은퇴 10년 전", "예상자산": f"{p['asset_10']/100_000_000:.2f}억원"},
+                {"시점": "은퇴 2년 전", "예상자산": f"{p['asset_2']/100_000_000:.2f}억원"},
+                {"시점": "은퇴시점", "예상자산": f"{p['retirement_asset']/100_000_000:.2f}억원"},
+            ])
+            st.dataframe(result_df, use_container_width=True, hide_index=True)
+
+            if p.get("glide_direction"):
+                st.success("세 시점에서 위험자산 비중이 단계적으로 낮아지는 글라이드패스를 만들었습니다.")
             else:
-                st.error("목표시점이 가까워졌다면 기존보다 더 보수적인 글라이드패스를 검토할 필요가 있습니다.")
-            chart_df = pd.DataFrame({"은퇴까지 남은 기간": ["30년", "10년", "2년"], "위험자산 비중": [p["r30"], p["r10"], p["r2"]]}).set_index("은퇴까지 남은 기간")
-            st.line_chart(chart_df)
-        else:
-            with st.form("tdf_landing_form"):
-                c1, c2, c3 = st.columns(3)
-                r30 = c1.slider("은퇴 30년 전 위험자산(%)", 0, 100, 80, step=5)
-                r10 = c2.slider("은퇴 10년 전 위험자산(%)", 0, 100, 50, step=5)
-                r2 = c3.slider("은퇴 2년 전 위험자산(%)", 0, 100, 30, step=5)
-                shock_return = (r2 / 100) * (-30) + ((100 - r2) / 100) * 2
-                growth_score = r30 + r10 + r2
-                range_ok = (70 <= r30 <= 90) and (40 <= r10 <= 60) and (20 <= r2 <= 40)
-                descending_ok = r30 > r10 > r2
-                shock_ok = shock_return >= -10
-                st.metric("현재 성장점수", f"{growth_score}")
-                st.metric("은퇴 2년 전 충격 시 가상 수익률", f"{shock_return:.1f}%")
-                surprise = st.radio(
-                    "계획 변경: 예상보다 5년 일찍 은퇴하게 되었습니다. 무엇을 검토할까요?",
-                    ["위험자산 비중을 더 늘린다", "현재 글라이드패스를 그대로 둔다", "위험자산 비중을 더 줄이는 방향을 검토한다"],
-                    index=None,
+                st.warning(
+                    "은퇴가 가까워지는 과정에서 위험자산 비중이 다시 높아지는 구간이 있습니다. "
+                    "TDF의 글라이드패스 원리와 비교해보세요."
                 )
-                submitted = st.form_submit_button("🛬 착륙 시도", type="primary")
-                if submitted:
-                    if surprise is None:
-                        st.warning("계획 변경 카드에도 답해주세요.")
-                    else:
-                        surprise_correct = surprise == "위험자산 비중을 더 줄이는 방향을 검토한다"
-                        landing_success = range_ok and descending_ok and shock_ok
-                        save_response(my_class, me, "tdf_landing", {
-                            "r30": r30, "r10": r10, "r2": r2, "growth_score": growth_score,
-                            "shock_return": round(shock_return, 4), "range_ok": range_ok,
-                            "descending_ok": descending_ok, "shock_ok": shock_ok,
-                            "landing_success": landing_success, "surprise": surprise,
-                            "surprise_correct": surprise_correct,
-                        })
-                        st.rerun()
+
+            chart_df = pd.DataFrame(
+                {"위험자산 비중(%)": [p["r30"], p["r10"], p["r2"]]},
+                index=["30년 전", "10년 전", "2년 전"],
+            )
+            st.line_chart(chart_df)
+
+            if not p.get("shock_revealed", False):
+                st.write("---")
+                st.warning("⚡ 이제 은퇴 2년 전에 갑작스러운 시장 충격이 발생합니다.")
+                st.caption("수업용 가상 충격: 위험자산 -30% · 안정자산 +2%")
+                if st.button("⚡ 시장 충격 확인", type="primary"):
+                    p["shock_revealed"] = True
+                    save_response(my_class, me, "tdf_landing", p)
+                    st.rerun()
+            else:
+                st.write("---")
+                st.markdown("#### ⚡ 시장 충격 결과")
+                c1, c2, c3 = st.columns(3)
+                c1.metric("충격 시 포트폴리오 수익률", f"{p['shock_return']:.1f}%")
+                c2.metric("충격 직후 자산", f"{p['after_shock_asset_2']/100_000_000:.2f}억원")
+                c3.metric(
+                    "은퇴시점 예상자산 감소",
+                    f"{p['shock_loss']/10_000:.0f}만원",
+                )
+                st.write(
+                    f"충격이 없었다면 은퇴시점 예상자산은 **{p['retirement_asset']/100_000_000:.2f}억원**, "
+                    f"같은 자산배분에서 충격이 발생하면 **{p['retirement_after_shock']/100_000_000:.2f}억원**입니다."
+                )
+                st.info(
+                    "은퇴가 가까운 시점의 위험자산 비중이 높을수록 같은 시장 충격이 "
+                    "은퇴자산에 더 크게 전달될 수 있습니다."
+                )
 
     elif phase == "연금저축 vs IRP":
         st.subheader("4. 연금저축 vs IRP · 세 상황에 더 잘 맞는 선택은?")
@@ -368,33 +474,59 @@ if role == "student":
                         st.rerun()
 
     elif phase == "연금계좌 연결 퍼즐":
-        st.subheader("5. 연금계좌 연결 퍼즐 · 첫 직장에서 은퇴까지 이어 붙여라")
-        st.caption("실제 개인연금 납입 시점은 다양할 수 있으며, 아래는 핵심 흐름을 이해하기 위한 단순화된 순서입니다.")
+        st.subheader("5. 연금계좌 연결 퍼즐 · 민지의 연금 경로를 복구하라")
+        st.write(
+            "단순히 사건의 순서를 맞추는 대신, 첫 직장부터 이직·개인저축까지 이어지는 "
+            "**하나의 경로에서 다섯 번의 의사결정**을 내려보세요."
+        )
+
         old = my_response(my_class, me, "flow_puzzle")
         if old:
             p = old["payload"]
-            st.success(f"6단계 중 **{p['score']}개 위치**를 정확하게 연결했습니다.")
-            rows = []
-            for i, correct in enumerate(FLOW_ORDER):
-                mine = p["order"][i]
-                rows.append({"단계": i + 1, "내 배열": mine, "정답": correct, "결과": "O" if mine == correct else "X"})
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-            st.info("핵심: 퇴직연금은 퇴직할 때 갑자기 생기는 돈이 아니라, 첫 직장부터 운용하고 이직 시 IRP 등으로 이어서 관리하는 장기 은퇴자산입니다.")
+            st.success(f"5개의 체크포인트 중 **{p['score']}개**를 적절하게 판단했습니다.")
+            for i, item in enumerate(PATH_CASES):
+                st.markdown(f"#### {item['title']}")
+                st.write(item["text"])
+                mine = p["answers"][i]
+                if mine == item["answer"]:
+                    st.success(f"내 선택: {mine}")
+                else:
+                    st.error(f"내 선택: {mine}")
+                st.caption(f"수업용 판단: {item['answer']} · {item['explain']}")
+            st.info(
+                "핵심: 퇴직연금과 개인연금은 각각 따로 외우는 상품이 아니라, "
+                "취업·운용·이직·추가저축·유동성 관리가 연결된 하나의 장기 의사결정 구조입니다."
+            )
         else:
             with st.form("flow_puzzle_form"):
-                st.write("아래 6개 사건을 시간 흐름에 맞게 배열하세요.")
-                selected_order = []
-                for i in range(6):
-                    selected_order.append(st.selectbox(f"{i+1}단계", FLOW_ORDER, index=None, placeholder="이 단계에 들어갈 사건 선택", key=f"flow_{i}"))
-                submitted = st.form_submit_button("🔗 연결 완료", type="primary")
+                answers = []
+                for i, item in enumerate(PATH_CASES):
+                    st.markdown(f"### {item['title']}")
+                    st.write(item["text"])
+                    answers.append(
+                        st.radio(
+                            "민지의 선택",
+                            item["options"],
+                            index=None,
+                            key=f"path_case_{i}",
+                        )
+                    )
+                    st.write("---")
+
+                submitted = st.form_submit_button("🧩 연금 경로 완성", type="primary")
                 if submitted:
-                    if any(x is None for x in selected_order):
-                        st.warning("6단계를 모두 선택해주세요.")
-                    elif len(set(selected_order)) != 6:
-                        st.warning("같은 사건을 두 번 사용할 수 없습니다. 6개 사건을 각각 한 번씩 사용해주세요.")
+                    if any(a is None for a in answers):
+                        st.warning("다섯 체크포인트에 모두 답해주세요.")
                     else:
-                        correctness = [selected_order[i] == FLOW_ORDER[i] for i in range(6)]
-                        save_response(my_class, me, "flow_puzzle", {"order": selected_order, "correctness": correctness, "score": sum(correctness)})
+                        correctness = [
+                            answers[i] == PATH_CASES[i]["answer"]
+                            for i in range(len(PATH_CASES))
+                        ]
+                        save_response(my_class, me, "flow_puzzle", {
+                            "answers": answers,
+                            "correctness": correctness,
+                            "score": sum(correctness),
+                        })
                         st.rerun()
 
     elif phase == "결과":
@@ -409,6 +541,7 @@ if role == "student":
 
 else:
     st.subheader("교수 통제소")
+
     c1, c2, c3 = st.columns([4, 2, 2])
     new_phase = c1.selectbox("진행 단계", PHASES, index=PHASES.index(phase))
     if c2.button("✅ 단계 적용", type="primary", use_container_width=True):
@@ -421,11 +554,23 @@ else:
     st.metric("접속 학생", f"{len(students)}명")
     st.write("---")
 
+    def professor_reveal(label: str):
+        key = f"prof_reveal_{my_class}_{phase}_{label}"
+        if not st.session_state.get(key, False):
+            if st.button("🔐 정답·해설 보기", key=f"show_{key}"):
+                st.session_state[key] = True
+                st.rerun()
+            return False
+        else:
+            if st.button("🙈 정답·해설 숨기기", key=f"hide_{key}"):
+                st.session_state[key] = False
+                st.rerun()
+            return True
+
     if phase == "DB·DC 구조 탐정":
         df = all_responses(my_class, "dbdc_detective")
         st.subheader("DB·DC 구조 탐정 결과")
-        st.markdown("#### 교수용 정답")
-        st.dataframe(pd.DataFrame([{"카드": text, "정답": correct} for text, correct in DBDC_CARDS]), use_container_width=True, hide_index=True)
+
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
@@ -438,65 +583,135 @@ else:
                         total += 1
                         if answers[i] == correct:
                             correct_count += 1
-                rows.append({"카드": text, "정답": correct, "정답률(%)": round(correct_count / total * 100, 1) if total else 0})
-            st.markdown("#### 카드별 정답률")
+                rows.append({
+                    "카드": text,
+                    "정답률(%)": round(correct_count / total * 100, 1) if total else 0,
+                })
+            st.markdown("#### 카드별 응답 결과")
             st.dataframe(pd.DataFrame(rows).sort_values("정답률(%)"), use_container_width=True, hide_index=True)
+
+        if professor_reveal("dbdc"):
+            st.markdown("#### 교수용 정답")
+            st.dataframe(
+                pd.DataFrame([{"카드": text, "정답": correct} for text, correct in DBDC_CARDS]),
+                use_container_width=True,
+                hide_index=True,
+            )
+            st.info(
+                "핵심: DB는 받을 급여(Benefit)가 정해진 구조이고, "
+                "DC는 회사가 낼 부담금(Contribution)이 정해지며 근로자가 운용하는 구조입니다."
+            )
 
     elif phase == "DC 방치주의보":
         df = all_responses(my_class, "dc_warning")
         st.subheader("DC 방치주의보 결과")
-        st.markdown("#### 교수용 정답·핵심")
-        for item in DC_WARNINGS:
-            st.markdown(f"**{item['title']} — 정답:** {item['answer']}")
+
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
             rows = []
             for i, item in enumerate(DC_WARNINGS):
                 total = correct_count = 0
+                counts = {}
                 for _, r in df.iterrows():
                     answers = (r["payload"] or {}).get("answers", [])
                     if len(answers) > i:
                         total += 1
-                        if answers[i] == item["answer"]:
+                        ans = answers[i]
+                        counts[ans] = counts.get(ans, 0) + 1
+                        if ans == item["answer"]:
                             correct_count += 1
-                rows.append({"경고등": i + 1, "정답률(%)": round(correct_count / total * 100, 1) if total else 0})
+                rows.append({
+                    "경고등": i + 1,
+                    "정답률(%)": round(correct_count / total * 100, 1) if total else 0,
+                })
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+        if professor_reveal("dc_warning"):
+            st.markdown("#### 교수용 정답·핵심")
+            for item in DC_WARNINGS:
+                st.markdown(f"**{item['title']} — 정답:** {item['answer']}")
+            st.info(
+                "DC형은 근로자가 운용방법을 선택하고 그 결과에 책임을 집니다. "
+                "디폴트옵션은 장기간 운용지시가 없는 상황을 줄이기 위한 장치입니다."
+            )
 
     elif phase == "TDF 착륙작전":
         df = all_responses(my_class, "tdf_landing")
         st.subheader("TDF 착륙작전 결과")
-        st.info("수업용 조건: 30년 전 70~90% · 10년 전 40~60% · 2년 전 20~40%, 시간이 갈수록 위험자산 감소, 은퇴 2년 전 가상 충격 손실 10% 이내.")
-        st.caption("성장점수는 세 시점 위험자산 비중의 합입니다. 모든 착륙 조건을 지키면서 가능한 최대 성장점수는 185(90+60+35)입니다.")
+        st.caption(
+            "수업용 가정: 시작자산 1억원 · 위험자산 기대수익률 7% · 안정자산 기대수익률 3% · "
+            "시장충격은 위험자산 -30%, 안정자산 +2%."
+        )
+
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
             rows = []
             for _, r in df.iterrows():
                 p = r["payload"] or {}
+                # 구버전 테스트 데이터가 남아 있어도 가능한 범위에서 계산
+                r30 = p.get("r30", 0)
+                r10 = p.get("r10", 0)
+                r2 = p.get("r2", 0)
+
+                def port_rate(w):
+                    return (w / 100) * 0.07 + ((100 - w) / 100) * 0.03
+
+                start_asset = 100_000_000
+                asset_10 = p.get("asset_10", start_asset * ((1 + port_rate(r30)) ** 20))
+                asset_2 = p.get("asset_2", asset_10 * ((1 + port_rate(r10)) ** 8))
+                retirement_asset = p.get("retirement_asset", asset_2 * ((1 + port_rate(r2)) ** 2))
+                shock_return = p.get("shock_return", ((r2 / 100) * (-0.30) + ((100-r2)/100) * 0.02) * 100)
+                after_shock_asset_2 = p.get("after_shock_asset_2", asset_2 * (1 + shock_return/100))
+                retirement_after_shock = p.get("retirement_after_shock", after_shock_asset_2 * ((1 + port_rate(r2)) ** 2))
+                shock_loss = p.get("shock_loss", retirement_asset - retirement_after_shock)
+
                 rows.append({
-                    "이름": r["name"], "30년 전": p.get("r30"), "10년 전": p.get("r10"), "2년 전": p.get("r2"),
-                    "충격수익률(%)": p.get("shock_return"), "안전착륙": "O" if p.get("landing_success") else "X",
-                    "성장점수": p.get("growth_score"), "계획변경 판단": "O" if p.get("surprise_correct") else "X",
+                    "이름": r["name"],
+                    "30년 전 위험자산(%)": r30,
+                    "10년 전 위험자산(%)": r10,
+                    "2년 전 위험자산(%)": r2,
+                    "예상 은퇴자산(억원)": round(retirement_asset / 100_000_000, 2),
+                    "충격수익률(%)": round(shock_return, 1),
+                    "충격 후 은퇴자산(억원)": round(retirement_after_shock / 100_000_000, 2),
+                    "충격으로 감소(만원)": round(shock_loss / 10_000),
                 })
-            result = pd.DataFrame(rows).sort_values(["안전착륙", "성장점수", "이름"], ascending=[False, False, True])
-            st.dataframe(result, use_container_width=True, hide_index=True)
-            valid = result[result["안전착륙"] == "O"]
-            c1, c2, c3 = st.columns(3)
-            c1.metric("안전착륙 성공", f"{len(valid)} / {len(result)}명")
-            c2.metric("성공자 최고 성장점수", f"{valid['성장점수'].max():.0f}" if not valid.empty else "-")
-            c3.metric("계획변경 정답률", f"{(result['계획변경 판단'] == 'O').mean()*100:.1f}%")
-            st.markdown("#### 학급 평균 글라이드패스")
-            mean_df = pd.DataFrame({"위험자산 평균": [result["30년 전"].mean(), result["10년 전"].mean(), result["2년 전"].mean()]}, index=["30년 전", "10년 전", "2년 전"])
-            st.line_chart(mean_df)
+
+            result = pd.DataFrame(rows)
+            st.markdown("#### 학생들이 선택한 평균 위험자산 비중")
+            avg_df = pd.DataFrame({
+                "평균 위험자산 비중(%)": [
+                    result["30년 전 위험자산(%)"].mean(),
+                    result["10년 전 위험자산(%)"].mean(),
+                    result["2년 전 위험자산(%)"].mean(),
+                ]
+            }, index=["30년 전", "10년 전", "2년 전"])
+            st.bar_chart(avg_df)
+
+            avg_cols = st.columns(3)
+            avg_cols[0].metric("30년 전 평균", f"{result['30년 전 위험자산(%)'].mean():.1f}%")
+            avg_cols[1].metric("10년 전 평균", f"{result['10년 전 위험자산(%)'].mean():.1f}%")
+            avg_cols[2].metric("2년 전 평균", f"{result['2년 전 위험자산(%)'].mean():.1f}%")
+
+            st.markdown("#### 학생별 시장 충격 영향")
+            shock_view = result.sort_values(
+                ["충격수익률(%)", "2년 전 위험자산(%)"],
+                ascending=[True, False],
+            )
+            st.dataframe(shock_view, use_container_width=True, hide_index=True)
+
+            shock_chart = shock_view[["이름", "충격수익률(%)"]].set_index("이름")
+            st.bar_chart(shock_chart)
+            st.caption(
+                "은퇴 2년 전 위험자산 비중이 높은 학생일수록 동일한 가상 시장충격에서 "
+                "포트폴리오 수익률이 더 크게 악화되는 모습을 함께 비교할 수 있습니다."
+            )
 
     elif phase == "연금저축 vs IRP":
         df = all_responses(my_class, "account_choice")
         st.subheader("연금저축 vs IRP 선택실험 결과")
-        st.markdown("#### 교수용 정답·해설")
-        for item in ACCOUNT_CASES:
-            st.markdown(f"**{item['title']} — 수업용 판단: {item['answer']}**")
-            st.caption(item["explain"])
+
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
@@ -510,30 +725,54 @@ else:
                 st.markdown(f"#### {item['title']} 선택 분포")
                 st.bar_chart(pd.Series(counts, name="학생 수"))
 
+        if professor_reveal("account_choice"):
+            st.markdown("#### 교수용 정답·해설")
+            for item in ACCOUNT_CASES:
+                st.markdown(f"**{item['title']} — 수업용 판단: {item['answer']}**")
+                st.caption(item["explain"])
+
     elif phase == "연금계좌 연결 퍼즐":
         df = all_responses(my_class, "flow_puzzle")
-        st.subheader("연금계좌 연결 퍼즐 결과")
-        st.markdown("#### 교수용 기준 순서")
-        for i, item in enumerate(FLOW_ORDER, start=1):
-            st.write(f"{i}. {item}")
+        st.subheader("연금계좌 연결 퍼즐 · 민지의 연금 경로 복구 결과")
+
         if df.empty:
             st.info("아직 제출이 없습니다.")
         else:
             rows = []
-            for i, correct in enumerate(FLOW_ORDER):
+            for i, item in enumerate(PATH_CASES):
                 total = correct_count = 0
                 for _, r in df.iterrows():
-                    order = (r["payload"] or {}).get("order", [])
-                    if len(order) > i:
+                    answers = (r["payload"] or {}).get("answers", [])
+                    if len(answers) > i:
                         total += 1
-                        if order[i] == correct:
+                        if answers[i] == item["answer"]:
                             correct_count += 1
-                rows.append({"단계": i + 1, "기준 사건": correct, "정답률(%)": round(correct_count / total * 100, 1) if total else 0})
-            st.markdown("#### 가장 많이 헷갈린 연결")
-            st.dataframe(pd.DataFrame(rows).sort_values("정답률(%)"), use_container_width=True, hide_index=True)
+                rows.append({
+                    "체크포인트": i + 1,
+                    "주제": item["title"].split("·", 1)[-1].strip(),
+                    "정답률(%)": round(correct_count / total * 100, 1) if total else 0,
+                })
+            st.markdown("#### 체크포인트별 결과")
+            st.dataframe(
+                pd.DataFrame(rows).sort_values("정답률(%)"),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        if professor_reveal("flow_puzzle"):
+            st.markdown("#### 교수용 정답·해설")
+            for item in PATH_CASES:
+                st.markdown(f"**{item['title']} — 수업용 판단:** {item['answer']}")
+                st.caption(item["explain"])
 
     elif phase == "결과":
-        stages = [("DB·DC", "dbdc_detective"), ("DC관리", "dc_warning"), ("TDF", "tdf_landing"), ("계좌선택", "account_choice"), ("연결퍼즐", "flow_puzzle")]
+        stages = [
+            ("DB·DC", "dbdc_detective"),
+            ("DC관리", "dc_warning"),
+            ("TDF", "tdf_landing"),
+            ("계좌선택", "account_choice"),
+            ("연결퍼즐", "flow_puzzle"),
+        ]
         rows = [{"활동": label, "제출 인원": len(all_responses(my_class, key))} for label, key in stages]
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
@@ -541,6 +780,7 @@ else:
         if st.button("이 분반 5주차 응답 삭제"):
             supabase.table(T_RESPONSES).delete().eq("class_name", my_class).execute()
             st.rerun()
+
         if st.button("이 분반 5주차 전체 초기화"):
             supabase.table(T_RESPONSES).delete().eq("class_name", my_class).execute()
             supabase.table(T_STUDENTS).delete().eq("class_name", my_class).execute()
