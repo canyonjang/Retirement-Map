@@ -332,7 +332,6 @@ if role == "student":
             {"수업용 가정": "은퇴 30년 전 시작자산", "값": "1억원"},
             {"수업용 가정": "위험자산 연 기대수익률", "값": "7%"},
             {"수업용 가정": "안정자산 연 기대수익률", "값": "3%"},
-            {"수업용 가정": "자산배분 적용기간", "값": "30→10년 전: 20년 / 10→2년 전: 8년 / 2년 전→은퇴: 2년"},
         ])
         st.dataframe(assumption_df, use_container_width=True, hide_index=True)
 
@@ -341,13 +340,13 @@ if role == "student":
         if not old:
             with st.form("tdf_landing_form"):
                 st.markdown("#### Round 1 · 은퇴 30년 전")
-                r30 = st.slider("위험자산 비중(%)", 0, 100, 80, step=5, key="tdf_r30")
+                r30 = st.slider("위험자산 비중(%)", 0, 100, 50, step=5, key="tdf_r30")
 
                 st.markdown("#### Round 2 · 은퇴 10년 전")
-                r10 = st.slider("위험자산 비중(%)", 0, 100, 55, step=5, key="tdf_r10")
+                r10 = st.slider("위험자산 비중(%)", 0, 100, 50, step=5, key="tdf_r10")
 
                 st.markdown("#### Round 3 · 은퇴 2년 전")
-                r2 = st.slider("위험자산 비중(%)", 0, 100, 30, step=5, key="tdf_r2")
+                r2 = st.slider("위험자산 비중(%)", 0, 100, 50, step=5, key="tdf_r2")
 
                 submitted = st.form_submit_button("📈 예상 은퇴자산 확인", type="primary")
                 if submitted:
@@ -412,9 +411,11 @@ if role == "student":
                 )
 
             chart_df = pd.DataFrame(
-                {"위험자산 비중(%)": [p["r30"], p["r10"], p["r2"]]},
-                index=["30년 전", "10년 전", "2년 전"],
-            )
+                {
+                    "시점": ["① 30년 전", "② 10년 전", "③ 2년 전"],
+                    "위험자산 비중(%)": [p["r30"], p["r10"], p["r2"]],
+                }
+            ).set_index("시점")
             st.line_chart(chart_df)
 
             if not p.get("shock_revealed", False):
@@ -455,7 +456,7 @@ if role == "student":
                 st.markdown(f"#### {item['title']}")
                 st.write(item["text"])
                 st.write(f"내 선택: **{p['answers'][i]}**")
-                st.caption(f"수업용 판단: {item['answer']} · {item['explain']}")
+                st.caption(f"핵심 판단: {item['answer']} · {item['explain']}")
         else:
             with st.form("account_choice_form"):
                 answers = []
@@ -492,7 +493,7 @@ if role == "student":
                     st.success(f"내 선택: {mine}")
                 else:
                     st.error(f"내 선택: {mine}")
-                st.caption(f"수업용 판단: {item['answer']} · {item['explain']}")
+                st.caption(f"핵심 판단: {item['answer']} · {item['explain']}")
             st.info(
                 "핵심: 퇴직연금과 개인연금은 각각 따로 외우는 상품이 아니라, "
                 "취업·운용·이직·추가저축·유동성 관리가 연결된 하나의 장기 의사결정 구조입니다."
@@ -681,12 +682,13 @@ else:
             result = pd.DataFrame(rows)
             st.markdown("#### 학생들이 선택한 평균 위험자산 비중")
             avg_df = pd.DataFrame({
+                "시점": ["① 30년 전", "② 10년 전", "③ 2년 전"],
                 "평균 위험자산 비중(%)": [
                     result["30년 전 위험자산(%)"].mean(),
                     result["10년 전 위험자산(%)"].mean(),
                     result["2년 전 위험자산(%)"].mean(),
                 ]
-            }, index=["30년 전", "10년 전", "2년 전"])
+            }).set_index("시점")
             st.bar_chart(avg_df)
 
             avg_cols = st.columns(3)
@@ -728,7 +730,7 @@ else:
         if professor_reveal("account_choice"):
             st.markdown("#### 교수용 정답·해설")
             for item in ACCOUNT_CASES:
-                st.markdown(f"**{item['title']} — 수업용 판단: {item['answer']}**")
+                st.markdown(f"**{item['title']} — 핵심 판단: {item['answer']}**")
                 st.caption(item["explain"])
 
     elif phase == "연금계좌 연결 퍼즐":
@@ -762,7 +764,7 @@ else:
         if professor_reveal("flow_puzzle"):
             st.markdown("#### 교수용 정답·해설")
             for item in PATH_CASES:
-                st.markdown(f"**{item['title']} — 수업용 판단:** {item['answer']}")
+                st.markdown(f"**{item['title']} — 핵심 판단:** {item['answer']}")
                 st.caption(item["explain"])
 
     elif phase == "결과":
