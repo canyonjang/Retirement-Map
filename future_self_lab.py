@@ -233,14 +233,6 @@ def fsc_cards_html():
             f'stroke="#222" stroke-width="2"/>'
             f'<circle cx="{x2}" cy="40" r="30" fill="white" '
             f'fill-opacity="0.55" stroke="#222" stroke-width="2"/>'
-            f'<text x="{x1}" y="36" text-anchor="middle" font-size="10">'
-            f'Current</text>'
-            f'<text x="{x1}" y="48" text-anchor="middle" font-size="10">'
-            f'Self</text>'
-            f'<text x="{x2}" y="36" text-anchor="middle" font-size="10">'
-            f'Future</text>'
-            f'<text x="{x2}" y="48" text-anchor="middle" font-size="10">'
-            f'Self</text>'
             f'</svg>'
             f'</div>'
         )
@@ -979,7 +971,7 @@ if role == "student":
         )
 
         st.markdown(
-    "왼쪽 원은 **현재 자아(Current Self)**, 오른쪽 원은 **10년 후 미래 자아(Future Self)**입니다. "
+    "왼쪽 원은 **현재 자아(Current Self)**, 오른쪽 원은 **10년 후 미래 자아(Future Self)** 입니다. "
     "두 원이 많이 겹칠수록 현재의 나와 미래의 나가 더 비슷하다고 느낀다는 의미입니다."
         )
         st.markdown(
@@ -1018,7 +1010,7 @@ if role == "student":
             ):
 
                 option = st.radio(
-                    "아래 그림 중 현재의 나와 10년 후 미래의 내가 얼마나 비슷하다고 느껴지는지를 가장 잘 나타내는 그림을 선택하세요.",
+                    "여러 그림 중 현재의 나와 10년 후 미래의 내가 얼마나 비슷하다고 느껴지는지를 가장 잘 나타내는 그림을 선택하세요.",
                     list(
                         range(
                             1,
