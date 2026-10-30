@@ -223,8 +223,19 @@ def fsc_cards_html():
         x1 = 52
         x2 = x1 + dx
 
+        # 옵션 1에만 현재 자아 / 미래 자아 표시
+        labels = ""
+
+        if i == 1:
+            labels = (
+                f'<text x="{x1}" y="37" text-anchor="middle" font-size="9">'
+                f'현재 자아</text>'
+                f'<text x="{x2}" y="37" text-anchor="middle" font-size="9">'
+                f'미래 자아</text>'
+            )
+
         svg = (
-            f'<div style="min-width:135px;border:1px solid #ddd;'
+            f'<div style="min-width:145px;border:1px solid #ddd;'
             f'border-radius:10px;padding:8px;text-align:center;">'
             f'<div style="font-weight:700;margin-bottom:4px;">옵션 {i}</div>'
             f'<svg width="140" height="82" viewBox="0 0 160 82" '
@@ -233,6 +244,7 @@ def fsc_cards_html():
             f'stroke="#222" stroke-width="2"/>'
             f'<circle cx="{x2}" cy="40" r="30" fill="white" '
             f'fill-opacity="0.55" stroke="#222" stroke-width="2"/>'
+            f'{labels}'
             f'</svg>'
             f'</div>'
         )
