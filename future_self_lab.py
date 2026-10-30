@@ -214,100 +214,41 @@ def all_students(
 # 원본 Google Form의 7개 겹침 그림을 단순 SVG로 재현
 # ─────────────────────────────────────────────────────────────
 def fsc_cards_html():
-
     # 1: 거의 분리 → 7: 거의 완전 중첩
     dxs = [72, 60, 49, 38, 27, 16, 5]
 
     cards = []
 
     for i, dx in enumerate(dxs, 1):
-
         x1 = 52
         x2 = x1 + dx
 
-        svg = f"""
-        <div style="
-            min-width:135px;
-            border:1px solid #ddd;
-            border-radius:10px;
-            padding:8px;
-            text-align:center;
-        ">
-          <div style="
-              font-weight:700;
-              margin-bottom:4px;
-          ">
-            옵션 {i}
-          </div>
-
-          <svg
-              width="130"
-              height="82"
-              viewBox="0 0 150 82"
-              aria-label="옵션 {i}"
-          >
-            <circle
-                cx="{x1}"
-                cy="40"
-                r="30"
-                fill="white"
-                stroke="#222"
-                stroke-width="2"
-            />
-
-            <circle
-                cx="{x2}"
-                cy="40"
-                r="30"
-                fill="white"
-                fill-opacity="0.55"
-                stroke="#222"
-                stroke-width="2"
-            />
-
-            <text
-                x="{x1}"
-                y="36"
-                text-anchor="middle"
-                font-size="10"
-            >
-                Current
-            </text>
-
-            <text
-                x="{x1}"
-                y="48"
-                text-anchor="middle"
-                font-size="10"
-            >
-                Self
-            </text>
-
-            <text
-                x="{x2}"
-                y="36"
-                text-anchor="middle"
-                font-size="10"
-            >
-                Future
-            </text>
-
-            <text
-                x="{x2}"
-                y="48"
-                text-anchor="middle"
-                font-size="10"
-            >
-                Self
-            </text>
-          </svg>
-        </div>
-        """
+        svg = (
+            f'<div style="min-width:135px;border:1px solid #ddd;'
+            f'border-radius:10px;padding:8px;text-align:center;">'
+            f'<div style="font-weight:700;margin-bottom:4px;">옵션 {i}</div>'
+            f'<svg width="130" height="82" viewBox="0 0 150 82" '
+            f'aria-label="옵션 {i}">'
+            f'<circle cx="{x1}" cy="40" r="30" fill="white" '
+            f'stroke="#222" stroke-width="2"/>'
+            f'<circle cx="{x2}" cy="40" r="30" fill="white" '
+            f'fill-opacity="0.55" stroke="#222" stroke-width="2"/>'
+            f'<text x="{x1}" y="36" text-anchor="middle" font-size="10">'
+            f'Current</text>'
+            f'<text x="{x1}" y="48" text-anchor="middle" font-size="10">'
+            f'Self</text>'
+            f'<text x="{x2}" y="36" text-anchor="middle" font-size="10">'
+            f'Future</text>'
+            f'<text x="{x2}" y="48" text-anchor="middle" font-size="10">'
+            f'Self</text>'
+            f'</svg>'
+            f'</div>'
+        )
 
         cards.append(svg)
 
     return (
-        "<div style='display:flex; gap:8px; flex-wrap:wrap;'>"
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
         + "".join(cards)
         + "</div>"
     )
