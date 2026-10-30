@@ -227,7 +227,7 @@ def fsc_cards_html():
             f'<div style="min-width:135px;border:1px solid #ddd;'
             f'border-radius:10px;padding:8px;text-align:center;">'
             f'<div style="font-weight:700;margin-bottom:4px;">옵션 {i}</div>'
-            f'<svg width="130" height="82" viewBox="0 0 150 82" '
+            f'<svg width="140" height="82" viewBox="0 0 160 82" '
             f'aria-label="옵션 {i}">'
             f'<circle cx="{x1}" cy="40" r="30" fill="white" '
             f'stroke="#222" stroke-width="2"/>'
@@ -978,13 +978,10 @@ if role == "student":
             "10주차 ① 미래 자아 연속성 측정"
         )
 
-        st.write(
-            "왼쪽 원은 **현재 자아(Current Self)**, "
-            "오른쪽 원은 **10년 후 미래 자아(Future Self)**입니다. "
-            "두 원이 많이 겹칠수록 현재의 나와 미래의 나가 "
-            "더 비슷하다고 느낀다는 의미입니다."
+        st.markdown(
+    "왼쪽 원은 **현재 자아(Current Self)**, 오른쪽 원은 **10년 후 미래 자아(Future Self)**입니다. "
+    "두 원이 많이 겹칠수록 현재의 나와 미래의 나가 더 비슷하다고 느낀다는 의미입니다."
         )
-
         st.markdown(
             fsc_cards_html(),
             unsafe_allow_html=True
@@ -1021,7 +1018,7 @@ if role == "student":
             ):
 
                 option = st.radio(
-                    "가장 가까운 그림을 선택하세요.",
+                    "아래 그림 중 현재의 나와 10년 후 미래의 내가 얼마나 비슷하다고 느껴지는지를 가장 잘 나타내는 그림을 선택하세요.",
                     list(
                         range(
                             1,
