@@ -1265,53 +1265,108 @@ if role == "student":
     # ─────────────────────────────
     elif phase == "10주차 · 지연보상과 할인율":
 
-        st.subheader(
-            "10주차 ③ 지연보상과 할인율"
+    st.subheader("10주차 ③ 지연보상과 할인율")
+
+    st.markdown(
+        "각 상황에서 **지금 받는 선택**과 "
+        "**조금 기다렸다가 더 받는 선택** 중 "
+        "더 끌리는 쪽을 고르세요."
+    )
+
+    old = my_response(
+        my_class,
+        me,
+        "discount"
+    )
+
+    answers = {}
+
+    for i, q in enumerate(DISCOUNT_ITEMS, start=1):
+        default_idx = None
+        if old and isinstance(old.get("answers"), dict):
+            prev = old["answers"].get(str(i))
+            if prev == "now":
+                default_idx = 0
+            elif prev == "later":
+                default_idx = 1
+
+        choice = st.radio(
+            f"{i}. 어느 쪽이 더 끌리나요?",
+            [
+                q["now_label"],
+                q["later_label"]
+            ],
+            index=default_idx,
+            key=f"discount_{i}"
         )
 
-        st.write(
-            "각 상황에서 "
-            "**지금 받는 선택**과 "
-            "**조금 기다렸다가 더 받는 선택** 중 "
-            "더 끌리는 쪽을 고르세요."
+        answers[str(i)] = "now" if choice == q["now_label"] else "later"
+
+    if st.button("나의 할인율 확인", key="submit_discount"):
+
+        delayed_count = sum(
+            1 for v in answers.values()
+            if v == "later"
+        )
+        delayed_rate = delayed_count / len(DISCOUNT_ITEMS)
+
+        now_ks = [
+            DISCOUNT_ITEMS[i-1]["k_star"]
+            for i in range(1, len(DISCOUNT_ITEMS)+1)
+            if answers[str(i)] == "now"
+        ]
+
+        later_ks = [
+            DISCOUNT_ITEMS[i-1]["k_star"]
+            for i in range(1, len(DISCOUNT_ITEMS)+1)
+            if answers[str(i)] == "later"
+        ]
+
+        k_min = max(now_ks) if now_ks else 0.0
+        k_max = min(later_ks) if later_ks else max(
+            item["k_star"] for item in DISCOUNT_ITEMS
         )
 
-        old = my_response(
+        k_mid = (k_min + k_max) / 2
+
+        save_response(
             my_class,
             me,
-            "discount"
+            "discount",
+            {
+                "answers": answers,
+                "delayed_count": delayed_count,
+                "delayed_rate": delayed_rate,
+                "k_min": k_min,
+                "k_max": k_max,
+                "k_mid": k_mid
+            }
         )
 
-        if old:
+        st.success("제출되었습니다.")
 
-            p = old["payload"]
-
-            c1, c2, c3 = st.columns(
-                3
-            )
-
-            c1.metric(
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.metric(
                 "지연보상 선택",
-                f"{p['delayed_count']} / 10"
+                f"{delayed_count} / {len(DISCOUNT_ITEMS)}"
             )
-
-            c2.metric(
+        with c2:
+            st.metric(
                 "지연보상 선택률",
-                f"{p['delayed_rate'] * 100:.0f}%"
+                f"{delayed_rate*100:.0f}%"
             )
-
-            c3.metric(
+        with c3:
+            st.metric(
                 "대표 할인율 k",
-                f"{p['k_mid']:.4f}"
+                f"{k_mid:.4f}"
             )
 
-            st.caption(
-                "작년 분석 방식과 동일하게 "
-                f"k_min={p['k_min']:.4f}, "
-                f"k_max={p['k_max']:.4f}의 "
-                "중간값을 대표값으로 사용했습니다."
-            )
-
+        st.caption(
+            f"작년 분석 방식과 동일하게 "
+            f"k_min={k_min:.4f}, k_max={k_max:.4f}의 중간값을 "
+            f"대표값으로 사용했습니다."
+        )
         else:
 
             with st.form(
