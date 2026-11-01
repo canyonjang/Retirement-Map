@@ -2259,26 +2259,31 @@ else:
             st.rerun()
         if st.session_state.get(cross_key, False):
 
-        cross_df = fsc_discount_analysis(my_class)
+            cross_df = fsc_discount_analysis(my_class)
 
-        if cross_df.empty:
-            st.warning(
-                "미래 자아 연속성과 지연보상을 모두 완료한 학생이 아직 없습니다."
-            )
+            if cross_df.empty:
+                st.warning(
+                    "미래 자아 연속성과 지연보상을 모두 완료한 학생이 아직 없습니다."
+                )
 
-        elif len(cross_df) < 3:
-            st.warning(
-                f"두 활동을 모두 완료한 학생은 {len(cross_df)}명입니다. "
-                "상관분석을 하기에는 응답 수가 부족합니다."
-            )
+            elif len(cross_df) < 3:
+                st.warning(
+                    f"두 활동을 모두 완료한 학생은 {len(cross_df)}명입니다. "
+                    "상관분석을 하기에는 응답 수가 부족합니다."
+                )
 
-        else:
-            rho_rate, p_rate = safe_spearman(
-                cross_df,
-                "fsc",
-                "delayed_rate"
-            )
+            else:
+                rho_rate, p_rate = safe_spearman(
+                    cross_df,
+                    "fsc",
+                    "delayed_rate"
+                )
 
+                rho_k, p_k = safe_spearman(
+                    cross_df,
+                    "fsc",
+                    "k_mid"
+                )
             rho_k, p_k = safe_spearman(
                 cross_df,
                 "fsc",
