@@ -2248,16 +2248,15 @@ else:
         cross_key = f"show_fsc_discount_{my_class}"
 
         if st.button(
-        "📊 교차분석 보기"
+            "📊 교차분석 보기"
             if not st.session_state.get(cross_key, False)
             else "🙈 교차분석 숨기기",
-        key=f"btn_{cross_key}"
-    ):
-        st.session_state[cross_key] = not st.session_state.get(
-            cross_key, False
-        )
-        st.rerun()
-
+            key=f"btn_{cross_key}"
+        ):
+            st.session_state[cross_key] = not st.session_state.get(
+                cross_key, False
+            )
+            st.rerun()
         if st.session_state.get(cross_key, False):
 
         cross_df = fsc_discount_analysis(my_class)
