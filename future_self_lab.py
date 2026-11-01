@@ -1265,249 +1265,249 @@ if role == "student":
     # ─────────────────────────────
     elif phase == "10주차 · 지연보상과 할인율":
 
-    st.subheader("10주차 ③ 지연보상과 할인율")
-
-    st.markdown(
-        "각 상황에서 **지금 받는 선택**과 "
-        "**조금 기다렸다가 더 받는 선택** 중 "
-        "더 끌리는 쪽을 고르세요."
-    )
-
-    old = my_response(
-        my_class,
-        me,
-        "discount"
-    )
-
-    answers = {}
-
-    for i, q in enumerate(DISCOUNT_ITEMS, start=1):
-        default_idx = None
-        if old and isinstance(old.get("answers"), dict):
-            prev = old["answers"].get(str(i))
-            if prev == "now":
-                default_idx = 0
-            elif prev == "later":
-                default_idx = 1
-
-        choice = st.radio(
-            f"{i}. 어느 쪽이 더 끌리나요?",
-            [
-                q["now_label"],
-                q["later_label"]
-            ],
-            index=default_idx,
-            key=f"discount_{i}"
+        st.subheader("10주차 ③ 지연보상과 할인율")
+    
+        st.markdown(
+            "각 상황에서 **지금 받는 선택**과 "
+            "**조금 기다렸다가 더 받는 선택** 중 "
+            "더 끌리는 쪽을 고르세요."
         )
-
-        answers[str(i)] = "now" if choice == q["now_label"] else "later"
-
-    if st.button("나의 할인율 확인", key="submit_discount"):
-
-        delayed_count = sum(
-            1 for v in answers.values()
-            if v == "later"
-        )
-        delayed_rate = delayed_count / len(DISCOUNT_ITEMS)
-
-        now_ks = [
-            DISCOUNT_ITEMS[i-1]["k_star"]
-            for i in range(1, len(DISCOUNT_ITEMS)+1)
-            if answers[str(i)] == "now"
-        ]
-
-        later_ks = [
-            DISCOUNT_ITEMS[i-1]["k_star"]
-            for i in range(1, len(DISCOUNT_ITEMS)+1)
-            if answers[str(i)] == "later"
-        ]
-
-        k_min = max(now_ks) if now_ks else 0.0
-        k_max = min(later_ks) if later_ks else max(
-            item["k_star"] for item in DISCOUNT_ITEMS
-        )
-
-        k_mid = (k_min + k_max) / 2
-
-        save_response(
+    
+        old = my_response(
             my_class,
             me,
-            "discount",
-            {
-                "answers": answers,
-                "delayed_count": delayed_count,
-                "delayed_rate": delayed_rate,
-                "k_min": k_min,
-                "k_max": k_max,
-                "k_mid": k_mid
-            }
+            "discount"
         )
-
-        st.success("제출되었습니다.")
-
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.metric(
-                "지연보상 선택",
-                f"{delayed_count} / {len(DISCOUNT_ITEMS)}"
+    
+        answers = {}
+    
+        for i, q in enumerate(DISCOUNT_ITEMS, start=1):
+            default_idx = None
+            if old and isinstance(old.get("answers"), dict):
+                prev = old["answers"].get(str(i))
+                if prev == "now":
+                    default_idx = 0
+                elif prev == "later":
+                    default_idx = 1
+    
+            choice = st.radio(
+                f"{i}. 어느 쪽이 더 끌리나요?",
+                [
+                    q["now_label"],
+                    q["later_label"]
+                ],
+                index=default_idx,
+                key=f"discount_{i}"
             )
-        with c2:
-            st.metric(
-                "지연보상 선택률",
-                f"{delayed_rate*100:.0f}%"
+    
+            answers[str(i)] = "now" if choice == q["now_label"] else "later"
+    
+        if st.button("나의 할인율 확인", key="submit_discount"):
+    
+            delayed_count = sum(
+                1 for v in answers.values()
+                if v == "later"
             )
-        with c3:
-            st.metric(
-                "대표 할인율 k",
-                f"{k_mid:.4f}"
+            delayed_rate = delayed_count / len(DISCOUNT_ITEMS)
+    
+            now_ks = [
+                DISCOUNT_ITEMS[i-1]["k_star"]
+                for i in range(1, len(DISCOUNT_ITEMS)+1)
+                if answers[str(i)] == "now"
+            ]
+    
+            later_ks = [
+                DISCOUNT_ITEMS[i-1]["k_star"]
+                for i in range(1, len(DISCOUNT_ITEMS)+1)
+                if answers[str(i)] == "later"
+            ]
+    
+            k_min = max(now_ks) if now_ks else 0.0
+            k_max = min(later_ks) if later_ks else max(
+                item["k_star"] for item in DISCOUNT_ITEMS
             )
-
-        st.caption(
-            f"작년 분석 방식과 동일하게 "
-            f"k_min={k_min:.4f}, k_max={k_max:.4f}의 중간값을 "
-            f"대표값으로 사용했습니다."
-        )
-        else:
-
-            with st.form(
-                "discount_form"
-            ):
-
-                answers = []
-
-                for i, q in enumerate(
-                    DELAY_QUESTIONS,
-                    1
+    
+            k_mid = (k_min + k_max) / 2
+    
+            save_response(
+                my_class,
+                me,
+                "discount",
+                {
+                    "answers": answers,
+                    "delayed_count": delayed_count,
+                    "delayed_rate": delayed_rate,
+                    "k_min": k_min,
+                    "k_max": k_max,
+                    "k_mid": k_mid
+                }
+            )
+    
+            st.success("제출되었습니다.")
+    
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.metric(
+                    "지연보상 선택",
+                    f"{delayed_count} / {len(DISCOUNT_ITEMS)}"
+                )
+            with c2:
+                st.metric(
+                    "지연보상 선택률",
+                    f"{delayed_rate*100:.0f}%"
+                )
+            with c3:
+                st.metric(
+                    "대표 할인율 k",
+                    f"{k_mid:.4f}"
+                )
+    
+            st.caption(
+                f"작년 분석 방식과 동일하게 "
+                f"k_min={k_min:.4f}, k_max={k_max:.4f}의 중간값을 "
+                f"대표값으로 사용했습니다."
+            )
+            else:
+    
+                with st.form(
+                    "discount_form"
                 ):
-
-                    answers.append(
-
-                        st.radio(
-                            f"{i}. 어느 쪽이 더 끌리시나요?",
-                            [
-                                q["immediate"],
-                                q["delayed"]
-                            ],
-                            index=None,
-                            key=f"delay_q_{i}",
-                        )
-
-                    )
-
-                if st.form_submit_button(
-                    "나의 할인율 확인",
-                    type="primary"
-                ):
-
-                    if any(
-                        a is None
-                        for a in answers
+    
+                    answers = []
+    
+                    for i, q in enumerate(
+                        DELAY_QUESTIONS,
+                        1
                     ):
-
-                        st.warning(
-                            "10문항에 모두 응답해주세요."
+    
+                        answers.append(
+    
+                            st.radio(
+                                f"{i}. 어느 쪽이 더 끌리시나요?",
+                                [
+                                    q["immediate"],
+                                    q["delayed"]
+                                ],
+                                index=None,
+                                key=f"delay_q_{i}",
+                            )
+    
                         )
-
-                    else:
-
-                        calc = calc_discount(
-                            answers
-                        )
-
-                        save_response(
-                            my_class,
-                            me,
-                            "discount",
-                            {
-                                "answers":
-                                    answers,
-
-                                **calc
-                            }
-                        )
-
-                        st.rerun()
-
-
-                # ─────────────────────────────
-                # FSC 점수별 평균 지연보상 선택률
-                # ─────────────────────────────
-                st.markdown("#### FSC 점수별 평균 지연보상 선택률")
-
-                graph_df = (
-                    cross_df
-                    .groupby("fsc", as_index=False)["delayed_rate"]
-                    .mean()
-                    .sort_values("fsc")
-                )
-
-                graph_df["지연보상 선택률(%)"] = (
-                    graph_df["delayed_rate"] * 100
-                )
-
-                graph_df["FSC"] = graph_df["fsc"].astype(int)
-
-                st.line_chart(
-                    graph_df.set_index("FSC")[
-                        ["지연보상 선택률(%)"]
-                    ]
-                )
-
-                # ─────────────────────────────
-                # 교수용 해석
-                # ─────────────────────────────
-                st.markdown("#### 이번 분반 결과")
-
-                if rho_rate is None:
-                    st.info(
-                        "응답의 변이가 충분하지 않아 "
-                        "FSC와 지연보상 선택률의 관계를 계산할 수 없습니다."
-                    )
-
-                elif p_rate < 0.05 and rho_rate > 0:
-                    st.success(
-                        "이번 분반에서는 현재 자아와 미래 자아 간의 "
-                        "유사성을 높게 느낄수록 미래 보상을 더 많이 선택하고, "
-                        "지연보상 선택률이 높은 경향이 나타났습니다."
-                    )
-
-                elif p_rate < 0.05 and rho_rate < 0:
-                    st.warning(
-                        "이번 분반에서는 예상과 반대로 미래 자아 연속성이 "
-                        "높을수록 지연보상 선택률이 낮은 관계가 나타났습니다."
-                    )
-
-                elif rho_rate > 0:
-                    st.info(
-                        "이번 분반에서는 미래 자아 연속성이 높을수록 "
-                        "지연보상 선택률도 높아지는 방향은 나타났지만, "
-                        "통계적으로 뚜렷한 관계라고 보기는 어렵습니다."
-                    )
-
-                elif rho_rate < 0:
-                    st.info(
-                        "이번 분반에서는 미래 자아 연속성이 높을수록 "
-                        "지연보상 선택률이 낮아지는 방향이 나타났지만, "
-                        "통계적으로 뚜렷한 관계라고 보기는 어렵습니다."
-                    )
-
-                else:
-                    st.info(
-                        "이번 분반에서는 미래 자아 연속성과 "
-                        "지연보상 선택률 사이에 뚜렷한 관계가 나타나지 않았습니다."
-                    )
-
-                # 할인율 k 해석
-                if rho_k is not None:
-                    st.caption(
-                        f"참고: FSC와 할인율 k의 Spearman 상관계수는 "
-                        f"ρ = {rho_k:.3f} (p = {p_k:.3f})입니다. "
-                        "k가 낮을수록 미래 보상을 덜 할인한다는 의미입니다."
+    
+                    if st.form_submit_button(
+                        "나의 할인율 확인",
+                        type="primary"
+                    ):
+    
+                        if any(
+                            a is None
+                            for a in answers
+                        ):
+    
+                            st.warning(
+                                "10문항에 모두 응답해주세요."
+                            )
+    
+                        else:
+    
+                            calc = calc_discount(
+                                answers
+                            )
+    
+                            save_response(
+                                my_class,
+                                me,
+                                "discount",
+                                {
+                                    "answers":
+                                        answers,
+    
+                                    **calc
+                                }
+                            )
+    
+                            st.rerun()
+    
+    
+                    # ─────────────────────────────
+                    # FSC 점수별 평균 지연보상 선택률
+                    # ─────────────────────────────
+                    st.markdown("#### FSC 점수별 평균 지연보상 선택률")
+    
+                    graph_df = (
+                        cross_df
+                        .groupby("fsc", as_index=False)["delayed_rate"]
+                        .mean()
+                        .sort_values("fsc")
                     )
     
-    # ─────────────────────────────
-    # 11주차 ④ 정신적 시간여행
-    # ─────────────────────────────
+                    graph_df["지연보상 선택률(%)"] = (
+                        graph_df["delayed_rate"] * 100
+                    )
+    
+                    graph_df["FSC"] = graph_df["fsc"].astype(int)
+    
+                    st.line_chart(
+                        graph_df.set_index("FSC")[
+                            ["지연보상 선택률(%)"]
+                        ]
+                    )
+    
+                    # ─────────────────────────────
+                    # 교수용 해석
+                    # ─────────────────────────────
+                    st.markdown("#### 이번 분반 결과")
+    
+                    if rho_rate is None:
+                        st.info(
+                            "응답의 변이가 충분하지 않아 "
+                            "FSC와 지연보상 선택률의 관계를 계산할 수 없습니다."
+                        )
+    
+                    elif p_rate < 0.05 and rho_rate > 0:
+                        st.success(
+                            "이번 분반에서는 현재 자아와 미래 자아 간의 "
+                            "유사성을 높게 느낄수록 미래 보상을 더 많이 선택하고, "
+                            "지연보상 선택률이 높은 경향이 나타났습니다."
+                        )
+    
+                    elif p_rate < 0.05 and rho_rate < 0:
+                        st.warning(
+                            "이번 분반에서는 예상과 반대로 미래 자아 연속성이 "
+                            "높을수록 지연보상 선택률이 낮은 관계가 나타났습니다."
+                        )
+    
+                    elif rho_rate > 0:
+                        st.info(
+                            "이번 분반에서는 미래 자아 연속성이 높을수록 "
+                            "지연보상 선택률도 높아지는 방향은 나타났지만, "
+                            "통계적으로 뚜렷한 관계라고 보기는 어렵습니다."
+                        )
+    
+                    elif rho_rate < 0:
+                        st.info(
+                            "이번 분반에서는 미래 자아 연속성이 높을수록 "
+                            "지연보상 선택률이 낮아지는 방향이 나타났지만, "
+                            "통계적으로 뚜렷한 관계라고 보기는 어렵습니다."
+                        )
+    
+                    else:
+                        st.info(
+                            "이번 분반에서는 미래 자아 연속성과 "
+                            "지연보상 선택률 사이에 뚜렷한 관계가 나타나지 않았습니다."
+                        )
+    
+                    # 할인율 k 해석
+                    if rho_k is not None:
+                        st.caption(
+                            f"참고: FSC와 할인율 k의 Spearman 상관계수는 "
+                            f"ρ = {rho_k:.3f} (p = {p_k:.3f})입니다. "
+                            "k가 낮을수록 미래 보상을 덜 할인한다는 의미입니다."
+                        )
+        
+        # ─────────────────────────────
+        # 11주차 ④ 정신적 시간여행
+        # ─────────────────────────────
     elif phase == "11주차 · 정신적 시간여행":
 
         st.subheader(
