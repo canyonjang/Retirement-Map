@@ -2249,8 +2249,8 @@ else:
 
         if st.button(
         "📊 교차분석 보기"
-        if not st.session_state.get(cross_key, False)
-        else "🙈 교차분석 숨기기",
+            if not st.session_state.get(cross_key, False)
+            else "🙈 교차분석 숨기기",
         key=f"btn_{cross_key}"
     ):
         st.session_state[cross_key] = not st.session_state.get(
