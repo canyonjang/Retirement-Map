@@ -2238,16 +2238,16 @@ else:
                     ]
                 )
             )
-                st.write("---")
-    st.subheader("FSC × 지연보상 교차분석")
+        st.write("---")
+        st.subheader("FSC × 지연보상 교차분석")
 
-    st.caption(
+        st.caption(
         "미래 자아 연속성과 지연보상 선택을 모두 완료한 학생만 분석합니다."
     )
 
-    cross_key = f"show_fsc_discount_{my_class}"
+        cross_key = f"show_fsc_discount_{my_class}"
 
-    if st.button(
+        if st.button(
         "📊 교차분석 보기"
         if not st.session_state.get(cross_key, False)
         else "🙈 교차분석 숨기기",
@@ -2258,7 +2258,7 @@ else:
         )
         st.rerun()
 
-    if st.session_state.get(cross_key, False):
+        if st.session_state.get(cross_key, False):
 
         cross_df = fsc_discount_analysis(my_class)
 
@@ -2385,8 +2385,8 @@ else:
                     f"참고: FSC와 할인율 k의 Spearman 상관계수는 "
                     f"ρ = {rho_k:.3f} (p = {p_k:.3f})입니다. "
                     "k가 낮을수록 미래 보상을 덜 할인한다는 의미입니다."
-                )
-            
+                )                
+              
 
     
     # ─────────────────────────────
