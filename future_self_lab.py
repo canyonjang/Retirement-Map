@@ -1373,85 +1373,6 @@ if role == "student":
 
                         st.rerun()
 
-            st.write("---")
-        st.subheader("FSC × 지연보상 교차분석")
-
-        st.caption(
-            "미래 자아 연속성과 지연보상 선택을 모두 완료한 학생만 분석합니다."
-        )
-
-        cross_key = f"show_fsc_discount_{my_class}"
-
-        if st.button(
-            "📊 교차분석 보기"
-            if not st.session_state.get(cross_key, False)
-            else "🙈 교차분석 숨기기",
-            key=f"btn_{cross_key}"
-        ):
-            st.session_state[cross_key] = not st.session_state.get(
-                cross_key, False
-            )
-            st.rerun()
-
-        if st.session_state.get(cross_key, False):
-
-            cross_df = fsc_discount_analysis(my_class)
-
-            if cross_df.empty:
-                st.warning(
-                    "미래 자아 연속성과 지연보상을 모두 완료한 학생이 아직 없습니다."
-                )
-
-            elif len(cross_df) < 3:
-                st.warning(
-                    f"두 활동을 모두 완료한 학생은 {len(cross_df)}명입니다. "
-                    "상관분석을 하기에는 응답 수가 부족합니다."
-                )
-
-            else:
-                rho_rate, p_rate = safe_spearman(
-                    cross_df,
-                    "fsc",
-                    "delayed_rate"
-                )
-
-                rho_k, p_k = safe_spearman(
-                    cross_df,
-                    "fsc",
-                    "k_mid"
-                )
-
-                c1, c2, c3 = st.columns(3)
-
-                with c1:
-                    st.metric(
-                        "분석 인원",
-                        f"{len(cross_df)}명"
-                    )
-
-                with c2:
-                    if rho_rate is not None:
-                        st.metric(
-                            "FSC ↔ 지연보상 선택률",
-                            f"ρ = {rho_rate:.3f}"
-                        )
-                    else:
-                        st.metric(
-                            "FSC ↔ 지연보상 선택률",
-                            "계산 불가"
-                        )
-
-                with c3:
-                    if rho_k is not None:
-                        st.metric(
-                            "FSC ↔ 할인율 k",
-                            f"ρ = {rho_k:.3f}"
-                        )
-                    else:
-                        st.metric(
-                            "FSC ↔ 할인율 k",
-                            "계산 불가"
-                        )
 
                 # ─────────────────────────────
                 # FSC 점수별 평균 지연보상 선택률
@@ -2317,7 +2238,157 @@ else:
                     ]
                 )
             )
+                st.write("---")
+    st.subheader("FSC × 지연보상 교차분석")
 
+    st.caption(
+        "미래 자아 연속성과 지연보상 선택을 모두 완료한 학생만 분석합니다."
+    )
+
+    cross_key = f"show_fsc_discount_{my_class}"
+
+    if st.button(
+        "📊 교차분석 보기"
+        if not st.session_state.get(cross_key, False)
+        else "🙈 교차분석 숨기기",
+        key=f"btn_{cross_key}"
+    ):
+        st.session_state[cross_key] = not st.session_state.get(
+            cross_key, False
+        )
+        st.rerun()
+
+    if st.session_state.get(cross_key, False):
+
+        cross_df = fsc_discount_analysis(my_class)
+
+        if cross_df.empty:
+            st.warning(
+                "미래 자아 연속성과 지연보상을 모두 완료한 학생이 아직 없습니다."
+            )
+
+        elif len(cross_df) < 3:
+            st.warning(
+                f"두 활동을 모두 완료한 학생은 {len(cross_df)}명입니다. "
+                "상관분석을 하기에는 응답 수가 부족합니다."
+            )
+
+        else:
+            rho_rate, p_rate = safe_spearman(
+                cross_df,
+                "fsc",
+                "delayed_rate"
+            )
+
+            rho_k, p_k = safe_spearman(
+                cross_df,
+                "fsc",
+                "k_mid"
+            )
+
+            c1, c2, c3 = st.columns(3)
+
+            with c1:
+                st.metric(
+                    "분석 인원",
+                    f"{len(cross_df)}명"
+                )
+
+            with c2:
+                if rho_rate is not None:
+                    st.metric(
+                        "FSC ↔ 지연보상 선택률",
+                        f"ρ = {rho_rate:.3f}"
+                    )
+                else:
+                    st.metric(
+                        "FSC ↔ 지연보상 선택률",
+                        "계산 불가"
+                    )
+
+            with c3:
+                if rho_k is not None:
+                    st.metric(
+                        "FSC ↔ 할인율 k",
+                        f"ρ = {rho_k:.3f}"
+                    )
+                else:
+                    st.metric(
+                        "FSC ↔ 할인율 k",
+                        "계산 불가"
+                    )
+
+            st.markdown("#### FSC 점수별 평균 지연보상 선택률")
+
+            graph_df = (
+                cross_df
+                .groupby("fsc", as_index=False)["delayed_rate"]
+                .mean()
+                .sort_values("fsc")
+            )
+
+            graph_df["지연보상 선택률(%)"] = (
+                graph_df["delayed_rate"] * 100
+            )
+
+            graph_df["FSC"] = graph_df["fsc"].astype(int)
+
+            st.line_chart(
+                graph_df.set_index("FSC")[
+                    ["지연보상 선택률(%)"]
+                ]
+            )
+
+            st.markdown("#### 이번 분반 결과")
+
+            if rho_rate is None:
+                st.info(
+                    "응답의 변이가 충분하지 않아 "
+                    "FSC와 지연보상 선택률의 관계를 계산할 수 없습니다."
+                )
+
+            elif p_rate < 0.05 and rho_rate > 0:
+                st.success(
+                    "이번 분반에서는 현재 자아와 미래 자아 간의 "
+                    "유사성을 높게 느낄수록 미래 보상을 더 많이 선택하고, "
+                    "지연보상 선택률이 높은 경향이 나타났습니다."
+                )
+
+            elif p_rate < 0.05 and rho_rate < 0:
+                st.warning(
+                    "이번 분반에서는 예상과 반대로 미래 자아 연속성이 "
+                    "높을수록 지연보상 선택률이 낮은 관계가 나타났습니다."
+                )
+
+            elif rho_rate > 0:
+                st.info(
+                    "이번 분반에서는 미래 자아 연속성이 높을수록 "
+                    "지연보상 선택률도 높아지는 방향은 나타났지만, "
+                    "통계적으로 뚜렷한 관계라고 보기는 어렵습니다."
+                )
+
+            elif rho_rate < 0:
+                st.info(
+                    "이번 분반에서는 미래 자아 연속성이 높을수록 "
+                    "지연보상 선택률이 낮아지는 방향이 나타났지만, "
+                    "통계적으로 뚜렷한 관계라고 보기는 어렵습니다."
+                )
+
+            else:
+                st.info(
+                    "이번 분반에서는 미래 자아 연속성과 "
+                    "지연보상 선택률 사이에 뚜렷한 관계가 나타나지 않았습니다."
+                )
+
+            if rho_k is not None:
+                st.caption(
+                    f"참고: FSC와 할인율 k의 Spearman 상관계수는 "
+                    f"ρ = {rho_k:.3f} (p = {p_k:.3f})입니다. "
+                    "k가 낮을수록 미래 보상을 덜 할인한다는 의미입니다."
+                )
+            
+
+    
     # ─────────────────────────────
     # 교수 정신적 시간여행
     # ─────────────────────────────
